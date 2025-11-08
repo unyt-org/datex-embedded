@@ -3,6 +3,8 @@
 extern crate alloc;
 
 pub mod interfaces;
+pub mod setup;
+
 /// ESP-specific interfaces
 #[cfg(feature = "esp")]
 pub mod esp;

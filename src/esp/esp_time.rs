@@ -12,6 +12,10 @@ impl EspTime {
             rtc: Rtc::new(lwpr)
         }
     }
+
+    pub fn set_current_time(&self, timestamp: u64) {
+        self.rtc.set_current_time_us(timestamp);
+    }
 }
 
 impl TimeTrait for EspTime {
