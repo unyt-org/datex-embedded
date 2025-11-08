@@ -2,6 +2,7 @@ use core::net::{IpAddr, SocketAddr};
 use core::prelude::rust_2024::*;
 use core::result::Result;
 use alloc::collections::vec_deque::VecDeque;
+use alloc::rc::Rc;
 use alloc::vec::Vec;
 use datex_core::stdlib::{future::Future, pin::Pin};
 use datex_core::std_sync::Mutex;
@@ -11,7 +12,6 @@ use embassy_executor::Spawner;
 use embassy_futures::select::{Either, select};
 use embassy_net::{Stack};
 use embassy_sync::once_lock::OnceLock;
-use esp_hal::rng::Rng;
 use core::time::Duration;
 use edge_nal_embassy::{Dns as EmbassyDns, TcpBuffers, TcpSocket, TcpSocketRead, TcpSocketWrite};
 use edge_nal_embassy::Tcp as EmbassyTcp;
@@ -44,16 +44,36 @@ use datex_core::network::com_interfaces::default_com_interfaces::websocket::webs
     parse_url, WebSocketClientInterfaceSetupData, WebSocketError,
 };
 
+use crate::hal::rng::RngHal;
 
-pub struct WebSocketClientEmbeddedInterface {
+
+static mut GLOBAL_STATE: Option<WebSocketClientInterfaceEmbeddedGlobalState> = None;
+
+pub struct WebSocketClientInterfaceEmbeddedGlobalState {
+    pub spawner: Spawner,
+    pub stack: Stack<'static>,
+    pub rng: Rc<dyn RngHal>,
+}
+
+pub struct WebSocketClientInterfaceEmbedded {
     pub address: Url,
     pub spawner: Spawner,
     pub stack: Stack<'static>,
     pub send_queue: Arc<Mutex<VecDeque<u8>>>,
     info: ComInterfaceInfo,
+    rng: Rc<dyn RngHal>,
 }
 
-impl SingleSocketProvider for WebSocketClientEmbeddedInterface {
+impl WebSocketClientInterfaceEmbedded {
+    pub fn set_global_state(global_state: WebSocketClientInterfaceEmbeddedGlobalState) {
+        unsafe {
+            GLOBAL_STATE = Some(global_state)
+        }
+    }
+}
+
+
+impl SingleSocketProvider for WebSocketClientInterfaceEmbedded {
     fn provide_sockets(&self) -> Arc<Mutex<ComInterfaceSockets>> {
         self.get_sockets().clone()
     }
@@ -61,21 +81,23 @@ impl SingleSocketProvider for WebSocketClientEmbeddedInterface {
 
 
 #[com_interface]
-impl WebSocketClientEmbeddedInterface {
+impl WebSocketClientInterfaceEmbedded {
     pub fn new(
         address: &str,
         spawner: Spawner,
         stack: Stack<'static>,
-    ) -> Result<WebSocketClientEmbeddedInterface, WebSocketError> {
+        rng: Rc<dyn RngHal>,
+    ) -> Result<WebSocketClientInterfaceEmbedded, WebSocketError> {
         let address =
             parse_url(address, true).map_err(|_| WebSocketError::InvalidURL)?;
         let info = ComInterfaceInfo::new();
-        let interface = WebSocketClientEmbeddedInterface {
+        let interface = WebSocketClientInterfaceEmbedded {
             address,
             info,
             spawner,
             stack,
             send_queue: Arc::new(Mutex::new(VecDeque::new())),
+            rng
         };
         Ok(interface)
     }
@@ -116,6 +138,7 @@ impl WebSocketClientEmbeddedInterface {
             receive_queue,
             self.send_queue.clone(),
             connect_result.clone(),
+            self.rng.clone(),
         )).expect("Failed to spawn listen task");
       
         // await connection
@@ -134,15 +157,14 @@ struct ConnectionData {
 async fn connect<'a>(
     connection_data: ConnectionData,
     buf: &'a mut [u8],
-    tcp: &'a EmbassyTcp<'a, 10>
+    tcp: &'a EmbassyTcp<'a, 10>,
+    rng: Rc<dyn RngHal>,
 ) -> Result<TcpSocket<'a, 10, 1024, 1024>, ()> {
 
     let mut conn: Connection<_> = Connection::new(buf, tcp, SocketAddr::new(connection_data.ip, connection_data.port));
 
-    let rng_source = Rng::new();
-
     let mut nonce = [0_u8; NONCE_LEN];
-    rng_source.read(&mut nonce);
+    rng.fill(&mut nonce);
 
     let mut buf = [0_u8; MAX_BASE64_KEY_LEN];
 
@@ -181,13 +203,14 @@ async fn listen(
     receive_queue: Arc<Mutex<VecDeque<u8>>>,
     send_queue: Arc<Mutex<VecDeque<u8>>>,
     connect_result: Arc<OnceLock<Result<(),WebSocketError>>>,
+    rng: Rc<dyn RngHal>,
 ) {
     let buffers = TcpBuffers::<10, 1024, 1024>::default();
     let tcp = EmbassyTcp::new(stack, &buffers);
 
     let mut buf = Box::new([0_u8; 8192]);
 
-    let result = connect(connection_data, buf.as_mut(), &tcp).await;
+    let result = connect(connection_data, buf.as_mut(), &tcp, rng.clone()).await;
 
     if let Ok(mut socket) = result {
         connect_result.get_or_init(|| Ok(()));
@@ -196,7 +219,7 @@ async fn listen(
         // Run send and receive loops concurrently
         match select(
             receive_loop(read, receive_queue.clone()),
-            send_loop(write, send_queue.clone())
+            send_loop(write, send_queue.clone(), rng)
         ).await {
             Either::First(_) => {
                 info!("receive_loop stopped");
@@ -215,8 +238,8 @@ async fn listen(
 async fn send_loop<'a>(
     mut socket_write: TcpSocketWrite<'a>,
     send_queue: Arc<Mutex<VecDeque<u8>>>,
+    rng: Rc<dyn RngHal>,
 ) -> Result<!, ()> {
-    let rng = Rng::new();
     loop {
         let mut block = Vec::new();
 
@@ -285,13 +308,23 @@ async fn receive_loop<'a>(
 
 
 impl ComInterfaceFactory<WebSocketClientInterfaceSetupData>
-    for WebSocketClientEmbeddedInterface
+    for WebSocketClientInterfaceEmbedded
 {
     fn create(
-        _setup_data: WebSocketClientInterfaceSetupData,
-    ) -> Result<WebSocketClientEmbeddedInterface, ComInterfaceError> {
-        error!("WebSocketClientEmbeddedInterface cannot be created via factory");
-        panic!();
+        setup_data: WebSocketClientInterfaceSetupData,
+    ) -> Result<WebSocketClientInterfaceEmbedded, ComInterfaceError> {
+        if let Some(global_state) = unsafe {GLOBAL_STATE.as_ref()} {
+            WebSocketClientInterfaceEmbedded::new(
+                &setup_data.address,
+                global_state.spawner,
+                global_state.stack,
+                global_state.rng.clone()
+            ).map_err(|_| ComInterfaceError::ConnectionError)
+        }
+        else {
+            error!("WebSocketClientInterfaceEmbedded cannot be created via factory, missing global state");
+            Err(ComInterfaceError::InvalidSetupData)
+        }
     }
 
     fn get_default_properties() -> InterfaceProperties {
@@ -305,7 +338,7 @@ impl ComInterfaceFactory<WebSocketClientInterfaceSetupData>
     }
 }
 
-impl ComInterface for WebSocketClientEmbeddedInterface {
+impl ComInterface for WebSocketClientInterfaceEmbedded {
     fn send_block<'a>(
         &'a mut self,
         block: &'a [u8],
@@ -328,7 +361,7 @@ impl ComInterface for WebSocketClientEmbeddedInterface {
     fn handle_close<'a>(
         &'a mut self,
     ) -> Pin<Box<dyn Future<Output = bool> + 'a>> {
-        // TODO #210
+        // TODO
         Box::pin(async move { true })
     }
 

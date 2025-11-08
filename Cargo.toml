@@ -36,13 +36,12 @@ sntpc = { version = "0.6.0", default-features = false, features = [
 # websocket dependencies
 url = { version = "2.5.7", default-features = false, optional = true }
 
-
 # esp dependencies
 esp-hal = { version = "=1.0.0-rc.1", optional = true, features = [
   "esp32s3",
   "log-04",
   "unstable",
-  "psram"
+  "psram",
 ] }
 esp-rtos = { version = "0.1.1", optional = true, features = [
   "embassy",
@@ -60,19 +59,23 @@ esp-radio = { version = "0.16.0", optional = true, features = [
   "log-04",
   "smoltcp",
   "unstable",
-  "wifi",
 ] }
 
 
 [features]
-default = ["esp"]
+default = []
 
 debug = [
     "datex-core/debug"
 ]
 
-websocket = [
-    "url"
+websocket-client = [
+    "dep:url",
+    "wifi"
+]
+
+wifi = [
+    "esp-radio/wifi"
 ]
 
 esp = [

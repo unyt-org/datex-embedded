@@ -1,0 +1,57 @@
+# DATEX Core (Embedded)
+
+This is an extension crate for the [datex-core crate](https://github.com/unyt-org/datex-core) that provides interfaces and helpers
+for running DATEX on embedded targets.
+
+This crate is nostd-compatible and supports various embedded targets, including:
+ * ESP32
+
+## Usage
+
+### Feature Flags
+
+To get started, add this crate to you project with `cargo add datex-core-embedded`. 
+You will probably also need the DATEX core crate (`cargo add datex-core`).
+
+This crate has no default feature flags, so to use it, you probably want to enable additional features:
+
+- `wifi`: When you enable this feature, you get helper functions for all supported targets to initialize a runtime with a Wifi connection.
+  This feature is required and automatically enabled by features like `websocket-client`, that need a network connection.
+- `debug`: This flag enables the `debug` flag for the DATEX core crate, providing some additional debug functionalities,
+- `websocket-client`: This flag enables the `WebSocketClientInterfaceEmbedded` com interface implementation for the DATEX runtime. When using an initialization function like `init_runtime_with_wifi`, the com interface will automatically be registered and can be used.
+- `esp`: This flag must be enabled when building for an ESP32 target. It is automatically enabled if a more specific ESP32 target feature (e.g  `esp32s2`) is activated.
+
+## Guide for ESP32 targets
+
+To build for an ESP32 target, enable the feature flag for your specific target.
+
+*Full list of ESP32 target feature flags*
+- `esp32s2`
+
+
+To initialize a new runtime instance, you can use `init_runtime_with_wifi`/`init_runtime_without_wifi`:
+```rs
+use datex_core_embedded::esp::init::init_runtime_with_wifi;
+use datex_core::logger::{init_logger};
+
+let spawner: embassy_executor::Spawner = ...;
+let peripherals: esp_hal::peripherals::Peripherals = ...; 
+
+init_logger();
+
+let (runtime, stack) = init_runtime_with_wifi(
+    spawner,
+    peripherals,
+    WifiCredentials { ssid, password },
+    RuntimeConfig {endpoint: Some(Endpoint::new("@myesp")), interfaces: Some(vec![
+        RuntimeConfigInterface::new(
+            "websocket-client", 
+            WebSocketClientInterfaceSetupData {
+                address: "wss://example.unyt.land".to_string()
+            }
+        ).unwrap()
+    ]), debug: Some(true)}
+).await;
+
+info!("runtime version: {}", runtime.version);
+```

@@ -17,10 +17,14 @@ pub struct WifiCredentials {
 /// It provides an interface for the Wifi stack and other hardware-related interfaces
 pub trait GlobalInitializer: Sized {
 
+    /// Register all available com interface factories
+    fn register_com_interface_factories(&self, spawner: &Spawner, stack: &Option<Stack<'static>>, runtime: &Runtime);
+
     /// Initializes the DATEX global context using the provided current time
     async fn init_global_context(&self, current_time: u64);
     /// Initializes a new wifi connection with the provided credentials
-    async fn init_wifi_stack(&self, spawner: Spawner, credentials: WifiCredentials) -> Stack<'static>;
+    #[cfg(feature = "wifi")]
+    async fn init_wifi_stack(&self, spawner: &Spawner, credentials: WifiCredentials) -> Stack<'static>;
 
     fn get_timestamp_generator(&self) -> impl NtpTimestampGenerator + Copy;
 
@@ -45,6 +49,7 @@ pub trait GlobalInitializer: Sized {
     /// Initializes a new DATEX runtime instance, running the base initialization before
     /// A Wifi connection is created, the current network time is synced
     /// and the Wifi stack is returned
+    #[cfg(feature = "wifi")]
     async fn init_datex_runtime_with_wifi(
         self,
         runtime_config: RuntimeConfig,
@@ -88,8 +93,15 @@ pub trait GlobalInitializer: Sized {
         
         let (current_time, maybe_wifi_stack) = match wifi_credentials {
             Some(wifi_credentials) => {
-                let wifi_stack = self.init_wifi_stack(spawner, wifi_credentials).await;
-                (self.init_network_stack(wifi_stack).await, Some(wifi_stack))
+                #[cfg(feature = "wifi")]
+                {
+                    let wifi_stack = self.init_wifi_stack(&spawner, wifi_credentials).await;
+                    (self.init_network_stack(wifi_stack).await, Some(wifi_stack))
+                }
+                #[cfg(not(feature = "wifi"))]
+                {
+                    panic!("Cannot initialize DATEX runtime with WIFI, 'wifi' feature is disabled")
+                }
             }
             None => (0, None)
         };
@@ -101,6 +113,13 @@ pub trait GlobalInitializer: Sized {
             runtime_config,
             AsyncContext { spawner: spawner.clone() }
         );
+
+        self.register_com_interface_factories(
+            &spawner,
+            &maybe_wifi_stack,
+            &runtime,
+        );
+
         runtime.start().await;
 
         (runtime, maybe_wifi_stack)
