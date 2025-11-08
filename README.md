@@ -11,7 +11,6 @@ This crate is nostd-compatible and supports various embedded targets, including:
 ### Feature Flags
 
 To get started, add this crate to you project with `cargo add datex-core-embedded`. 
-You will probably also need the DATEX core crate (`cargo add datex-core`).
 
 This crate has no default feature flags, so to use it, you probably want to enable additional features:
 
@@ -27,6 +26,44 @@ To build for an ESP32 target, enable the feature flag for your specific target.
 
 *Full list of ESP32 target feature flags*
 - `esp32s2`
+
+
+### Using the datex_core_embedded::main macro
+
+The `datex_core_embedded::main` macro provides an easy way to use an async main function with an initialized DATEX runtime:
+
+```rs
+#![no_std]
+#![no_main]
+use datex_core::runtime::Runtime;
+
+#[datex_core_embedded::main("../config.dx")]
+async fn main(runtime: Runtime) {
+    info!("DATEX runtime version: {}", runtime.version);
+
+    // do some stuff
+}
+```
+
+Note that you need to specify a path to a DATEX config file for your endpoint.
+Here is a simple example config file that defines Wifi credentials and a websocket server to connect to:
+```js
+{
+    endpoint: @mymicrocontroller,
+    interfaces: [
+        {
+            type: "websocket-client",
+            config: {
+                address: "wss://example.unyt.land"
+            }
+        }
+    ],
+    env: [
+        ["wifi_ssid", "MY_WIFI"],
+        ["wifi_password", "MY_PASSWORD"]
+    ]
+}
+```
 
 
 To initialize a new runtime instance, you can use `init_runtime_with_wifi`/`init_runtime_without_wifi`:

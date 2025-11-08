@@ -6,19 +6,19 @@ use embassy_net::Stack;
 use esp_hal::{peripherals::{Peripherals}, rtc_cntl::Rtc};
 use crate::{esp::{global_context::init_global_context, timestamp_generator::TimestampGenerator}, hal::rng::RngHal, setup::global_initializer::{GlobalInitializer, WifiCredentials}};
 
-pub struct EspGlobalInitializer {
-    peripherals: Peripherals,
+pub struct EspGlobalInitializer<'a> {
+    peripherals: &'a Peripherals,
     rtc: Rtc<'static>,
 }
 
-impl EspGlobalInitializer {
-    pub fn new(peripherals: Peripherals) -> EspGlobalInitializer {
+impl<'a> EspGlobalInitializer<'a> {
+    pub fn new(peripherals: &'a Peripherals) -> EspGlobalInitializer<'a> {
         let rtc = Rtc::new(unsafe {peripherals.LPWR.clone_unchecked()});
         EspGlobalInitializer {peripherals, rtc}
     }
 }
 
-impl GlobalInitializer for EspGlobalInitializer {
+impl<'a> GlobalInitializer for EspGlobalInitializer<'a> {
     async fn init_global_context(&self, current_time: u64) {
         init_global_context(unsafe {self.peripherals.LPWR.clone_unchecked()}, current_time);
     }
@@ -28,7 +28,7 @@ impl GlobalInitializer for EspGlobalInitializer {
         crate::esp::wifi::init_wifi_stack(spawner, &self.peripherals, credentials).await
     }
 
-    fn get_timestamp_generator<'a>(&'a self) -> impl sntpc::NtpTimestampGenerator + Copy {
+    fn get_timestamp_generator(&self) -> impl sntpc::NtpTimestampGenerator + Copy {
         TimestampGenerator::new(&self.rtc)
     }
     
@@ -46,9 +46,6 @@ impl GlobalInitializer for EspGlobalInitializer {
                     rng: Rc::new(Rng::new())
                 });
                 runtime.com_hub().register_interface_factory("websocket-client".to_string(), WebSocketClientInterfaceEmbedded::factory);
-            }
-            else {
-                panic!("Cannot set up websocket-client without network stack");
             }
            
         }

@@ -1,5 +1,5 @@
 use alloc::string::String;
-use datex_core::runtime::{AsyncContext, Runtime, RuntimeConfig};
+use datex_core::{runtime::{AsyncContext, Runtime, RuntimeConfig}, values::core_values::endpoint::Endpoint};
 use embassy_executor::Spawner;
 use embassy_net::Stack;
 use sntpc::NtpTimestampGenerator;
@@ -86,7 +86,7 @@ pub trait GlobalInitializer: Sized {
     /// - The Wifi stack will be returned
     async fn init_datex_runtime(
         &self,
-        runtime_config: RuntimeConfig,
+        mut runtime_config: RuntimeConfig,
         wifi_credentials: Option<WifiCredentials>,
         spawner: Spawner, 
     ) -> (Runtime, Option<Stack<'static>>) {
