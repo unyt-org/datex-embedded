@@ -25,6 +25,7 @@ This crate has no default feature flags, so to use it, you probably want to enab
 To build for an ESP32 target, enable the feature flag for your specific target.
 
 *Full list of ESP32 target feature flags*
+- `esp32`
 - `esp32s3`
 
 
