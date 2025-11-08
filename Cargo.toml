@@ -20,7 +20,7 @@ embassy-net = { version = "0.7.0", default-features = false, features = [
   # note: ipv6 does currently lead to compiler error
 ] }
 embedded-io = "0.7.1"
-embedded-io-async = { version = "0.7.0", features = ["alloc"] }
+embedded-io-async = { version = "0.6.0", features = ["alloc"] } # note: must be pinned to 0.6.0 to work with edge-net 0.11.2
 embassy-executor = { version = "0.9.0", features = ["log"] }
 embassy-time = { version = "0.5.0", features = ["log"] }
 edge-net = { version = "0.11.2" }
@@ -50,7 +50,7 @@ esp-rtos = { version = "0.1.1", optional = true, features = [
   "log-04",
 ] }
 esp-bootloader-esp-idf = { version = "0.3.0", optional = true }
-esp-alloc = {version = "0.9.0", optional = true}
+esp-alloc = { version = "0.9.0", optional = true }
 esp-radio = { version = "0.16.0", optional = true, features = [
   "ble",
   "coex",
@@ -59,10 +59,12 @@ esp-radio = { version = "0.16.0", optional = true, features = [
   "smoltcp",
   "unstable",
 ] }
+embedded-tls = { version = "0.17.0", optional = true, default-features = false, features = ["alloc"]}
+rand_core = "0.6.4"
 
 
 [features]
-default = []
+default = ["websocket-client", "esp32s3"]
 
 debug = [
     "datex-core/debug"
@@ -70,7 +72,8 @@ debug = [
 
 websocket-client = [
     "dep:url",
-    "wifi"
+    "dep:embedded-tls",
+    "wifi",
 ]
 
 wifi = [
@@ -83,7 +86,7 @@ esp = [
     "dep:esp-bootloader-esp-idf",
     "dep:esp-alloc",
     "dep:esp-radio",
-    "datex-core/esp_logger"
+    "datex-core/esp_logger",
 ]
 
 esp32 = [

@@ -12,12 +12,37 @@ use embassy_executor::Spawner;
 use embassy_futures::select::{Either, select};
 use embassy_net::{Stack};
 use embassy_sync::once_lock::OnceLock;
+use embedded_io_async::Read;
+use embedded_tls::{Aes128GcmSha256, NoVerify, TlsConfig, TlsConnection, TlsContext};
 use core::time::Duration;
 use edge_nal_embassy::{Dns as EmbassyDns, TcpBuffers, TcpSocket, TcpSocketRead, TcpSocketWrite};
 use edge_nal_embassy::Tcp as EmbassyTcp;
 use edge_http::ws::{MAX_BASE64_KEY_LEN, MAX_BASE64_KEY_RESPONSE_LEN, NONCE_LEN};
 use edge_net::nal::{AddrType, Dns, TcpSplit};
 use alloc::string::String;
+use rand_core::{RngCore, CryptoRng};
+
+struct Rng(pub Rc<dyn RngHal>);
+
+impl RngCore for Rng {
+    fn next_u32(&mut self) -> u32 {
+        self.0.random()
+    }
+    fn next_u64(&mut self) -> u64 {
+        self.0.random() as u64
+    }
+    fn fill_bytes(&mut self, dest: &mut [u8]) {
+        self.0.fill(dest)
+    }
+    
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
+        Ok(self.0.fill(dest))
+    }
+}
+
+impl CryptoRng for Rng {}
+
+
 
 use datex_core::{
     delegate_com_interface_info,
@@ -132,6 +157,10 @@ impl WebSocketClientInterfaceEmbedded {
 
         let connect_result = Arc::new(OnceLock::<Result<(),WebSocketError>>::new());
 
+        let tls_domain = if self.address.scheme() == "wss" {
+            Some(self.address.authority().to_string())
+        } else {None};
+
         self.spawner.spawn(listen(
             self.stack.clone(),
             connection_data,
@@ -139,6 +168,7 @@ impl WebSocketClientInterfaceEmbedded {
             self.send_queue.clone(),
             connect_result.clone(),
             self.rng.clone(),
+            tls_domain
         )).expect("Failed to spawn listen task");
       
         // await connection
@@ -152,7 +182,7 @@ struct ConnectionData {
     ip: IpAddr,
 }
 
- /// Establishes a TCP connection and performs the WebSocket upgrade handshake
+/// Establishes a TCP connection and performs the WebSocket upgrade handshake
 /// Returns the established TcpSocket
 async fn connect<'a>(
     connection_data: ConnectionData,
@@ -196,6 +226,7 @@ async fn connect<'a>(
     Ok(socket)
 }
 
+
 #[embassy_executor::task]
 async fn listen(
     stack: Stack<'static>,
@@ -204,6 +235,7 @@ async fn listen(
     send_queue: Arc<Mutex<VecDeque<u8>>>,
     connect_result: Arc<OnceLock<Result<(),WebSocketError>>>,
     rng: Rc<dyn RngHal>,
+    tls_domain: Option<String>
 ) {
     let buffers = TcpBuffers::<10, 1024, 1024>::default();
     let tcp = EmbassyTcp::new(stack, &buffers);
@@ -213,53 +245,163 @@ async fn listen(
     let result = connect(connection_data, buf.as_mut(), &tcp, rng.clone()).await;
 
     if let Ok(mut socket) = result {
-        connect_result.get_or_init(|| Ok(()));
-        let (read, write) = socket.split();
 
-        // Run send and receive loops concurrently
-        match select(
-            receive_loop(read, receive_queue.clone()),
-            send_loop(write, send_queue.clone(), rng)
-        ).await {
-            Either::First(_) => {
-                info!("receive_loop stopped");
-            },
-            Either::Second(_) => {
-                info!("send_loop stopped");
-            }
+        connect_result.get_or_init(|| Ok(()));
+
+        // use tls connection
+        if let Some(tls_domain) = tls_domain {
+            start_read_write_tls(
+                socket, 
+                &tls_domain, 
+                rng, 
+                receive_queue, 
+                send_queue
+            ).await;
         }
-        info!("Websocket loop stopped");
+        // use normal tcp connection
+        else {
+            start_read_write(
+                socket,
+                rng,
+                receive_queue,
+                send_queue
+            ).await;
+        }
+
+       
     }
     else {
         connect_result.get_or_init(|| Err(WebSocketError::ConnectionError));
     }
 }
 
-async fn send_loop<'a>(
-    mut socket_write: TcpSocketWrite<'a>,
+
+async fn start_read_write<'a, const N: usize, const TX_SZ:usize, const RX_SZ: usize>(
+    mut socket: TcpSocket<'a, N, TX_SZ, RX_SZ>,
+    rng: Rc<dyn RngHal>,
+    receive_queue: Arc<Mutex<VecDeque<u8>>>,
+    send_queue: Arc<Mutex<VecDeque<u8>>>,
+) {
+    let (read, write) = socket.split();
+
+    // Run send and receive loops concurrently
+    match select(
+        receive_loop(read, receive_queue.clone()),
+        send_loop(write, send_queue.clone(), rng)
+    ).await {
+        Either::First(_) => {
+            info!("receive_loop stopped");
+        },
+        Either::Second(_) => {
+            info!("send_loop stopped");
+        }
+    }
+    info!("Websocket loop stopped");
+}
+
+
+async fn start_read_write_tls<'a, const N: usize, const TX_SZ:usize, const RX_SZ: usize>(
+    mut socket: TcpSocket<'a, N, TX_SZ, RX_SZ>, 
+    server_name: &str,
+    mut rng: Rc<dyn RngHal>,
+    receive_queue: Arc<Mutex<VecDeque<u8>>>,
+    send_queue: Arc<Mutex<VecDeque<u8>>>,
+) {
+    let mut read_buf = Box::new([0; 16384]);
+    let mut write_buf = Box::new([0; 16384]);
+
+    let mut rng_wrapper = Rng(rng.clone());
+
+    let mut tls_config = TlsConfig::new()
+        .with_server_name(server_name);
+    let mut ctx = TlsContext::new(&tls_config, &mut rng_wrapper);
+
+    info!("creating TLS connection to {}", server_name);
+
+    let mut tls_conn =
+        TlsConnection::<_, Aes128GcmSha256>::new(
+            &mut socket,
+            read_buf.as_mut(),
+            write_buf.as_mut()
+        );
+
+    match tls_conn.open::<_, NoVerify>(ctx).await {
+        Ok(mut tls_stream) => {
+            info!("TLS connection established");
+        }
+        Err(e) => {
+            error!("{:#?}", e);
+        }
+    }
+
+    // Run send and receive loops concurrently
+    loop {
+        let send_block = match select(
+            tls_conn.read_buffered(),
+            get_send_data(&send_queue)
+        ).await {
+            Either::First(result) => {
+                if let Ok(mut buffer) = result {
+                    info!("received buffer with len {}", buffer.len());
+                    receive_queue.try_lock().unwrap().extend(buffer.pop_all());
+                }
+                info!("receive_loop stopped");
+                None
+            },
+            Either::Second(block) => {
+                Some(block)
+            }
+        };
+        if let Some(block) = send_block {
+            // send_block(tls_conn, &rng, block);
+            let header = FrameHeader {
+                frame_type: FrameType::Binary(false),
+                payload_len: block.len() as _,
+                mask_key: rng.random().into(),
+            };
+
+            header.send(&mut tls_conn).await.map_err(|_| ()).unwrap();
+            header.send_payload(&mut tls_conn, &block).await.map_err(|_| ()).unwrap();
+
+            info!("Sent {header} with payload {:?}", &block);
+        }
+    }
+    info!("Websocket loop stopped");
+
+}
+
+
+async fn get_send_data(send_queue: &Arc<Mutex<VecDeque<u8>>>) -> Vec<u8> {
+    // Wait for data to send
+    let mut block = Vec::new();
+
+    loop {
+        {
+            let mut queue = send_queue.try_lock().unwrap();
+            while let Some(byte) = queue.pop_front() {
+                block.push(byte);
+            }
+        }
+
+        if !block.is_empty() {
+            break;
+        }
+
+        // No data yet, yield to allow other tasks to run
+        embassy_futures::yield_now().await;
+    }
+    block
+}
+
+
+async fn send_loop(
+    mut socket_write: impl embedded_io_async::Write,
     send_queue: Arc<Mutex<VecDeque<u8>>>,
     rng: Rc<dyn RngHal>,
 ) -> Result<!, ()> {
     loop {
-        let mut block = Vec::new();
-
-        // Wait for data to send
-        loop {
-            {
-                let mut queue = send_queue.try_lock().unwrap();
-                while let Some(byte) = queue.pop_front() {
-                    block.push(byte);
-                }
-            }
-
-            if !block.is_empty() {
-                break;
-            }
-
-            // No data yet, yield to allow other tasks to run
-            embassy_futures::yield_now().await;
-        }
-
+        let block = get_send_data(&send_queue).await;
+        
         let header = FrameHeader {
             frame_type: FrameType::Binary(false),
             payload_len: block.len() as _,
@@ -270,11 +412,13 @@ async fn send_loop<'a>(
         header.send_payload(&mut socket_write, &block).await.map_err(|_| ())?;
 
         info!("Sent {header} with payload {:?}", &block);
+
     }
 }
 
-async fn receive_loop<'a>(
-    mut socket_rc: TcpSocketRead<'a>,
+
+async fn receive_loop(
+    mut socket_rc: impl embedded_io_async::Read,
     receive_queue: Arc<Mutex<VecDeque<u8>>>,
 ) -> Result<!, ()> {
     let mut buf = [0_u8; 1024];
