@@ -65,8 +65,9 @@ Here is a simple example config file that defines Wifi credentials and a websock
 }
 ```
 
+### Manual instantiation
 
-To initialize a new runtime instance, you can use `init_runtime_with_wifi`/`init_runtime_without_wifi`:
+To initialize a new runtime instance, you can also use `init_runtime_with_wifi`/`init_runtime_without_wifi`:
 ```rs
 use datex_core_embedded::esp::init::init_runtime_with_wifi;
 use datex_core::logger::{init_logger};
