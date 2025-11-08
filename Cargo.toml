@@ -88,7 +88,7 @@ esp = [
     "datex-core/esp_logger"
 ]
 
-esp32s2 = [
+esp32s3 = [
     "esp",
     "esp-bootloader-esp-idf/esp32s3",
     "esp-radio/esp32s3"

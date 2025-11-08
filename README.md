@@ -18,14 +18,14 @@ This crate has no default feature flags, so to use it, you probably want to enab
   This feature is required and automatically enabled by features like `websocket-client`, that need a network connection.
 - `debug`: This flag enables the `debug` flag for the DATEX core crate, providing some additional debug functionalities,
 - `websocket-client`: This flag enables the `WebSocketClientInterfaceEmbedded` com interface implementation for the DATEX runtime. When using an initialization function like `init_runtime_with_wifi`, the com interface will automatically be registered and can be used.
-- `esp`: This flag must be enabled when building for an ESP32 target. It is automatically enabled if a more specific ESP32 target feature (e.g  `esp32s2`) is activated.
+- `esp`: This flag must be enabled when building for an ESP32 target. It is automatically enabled if a more specific ESP32 target feature (e.g  `esp32s3`) is activated.
 
 ## Guide for ESP32 targets
 
 To build for an ESP32 target, enable the feature flag for your specific target.
 
 *Full list of ESP32 target feature flags*
-- `esp32s2`
+- `esp32s3`
 
 
 ### Using the datex_core_embedded::main macro
