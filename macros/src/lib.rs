@@ -1,3 +1,5 @@
+use std::env;
+use std::str::FromStr;
 use std::{fs, path::PathBuf};
 
 use proc_macro::{TokenStream};
@@ -12,12 +14,16 @@ struct ParsedAttributes {
     pub config: Option<PathBuf>,
 }
 
+fn get_file_path() -> PathBuf {
+    let root_path = PathBuf::from_str(&env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".into())).unwrap();
+    root_path.join(Span::call_site().file()).canonicalize().unwrap()
+}
+
 impl Parse for ParsedAttributes {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let mut config = None;
 
-        let caller_span = Span::call_site();
-        let source_file = caller_span.local_file().expect("Failed to get file path");
+        let source_file = get_file_path();
 
         // first try if directly a path string
         if let Ok(config_path) = get_config_path(&input, &source_file) {
@@ -193,6 +199,11 @@ fn get_init_code(sig: &mut Signature, has_stack: bool) -> TokenStream2 {
         _ => None,
     };
 
+    let runtime_type = match runtime_param {
+        Some(FnArg::Typed(pat_type)) => Some(pat_type.ty.clone()),
+        _ => None,
+    };
+
     // extract context param
     let context_param = sig.inputs.get(1);
     let context_ident = match context_param {
@@ -224,11 +235,11 @@ fn get_init_code(sig: &mut Signature, has_stack: bool) -> TokenStream2 {
     // generate init code for runtime + context
     let init_code = match (runtime_ident, context_ident) {
         (Some(runtime), Some(context)) => quote! {
-            let #runtime = runtime;
+            let #runtime: #runtime_type = runtime;
             let #context = #context_init_code;
         },
         (Some(runtime), None) => quote! {
-            let #runtime = runtime;
+            let #runtime: #runtime_type = runtime;
         },
         (None, Some(context)) => quote! {
             let #context = #context_init_code;
