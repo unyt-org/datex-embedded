@@ -392,6 +392,7 @@ dependencies = [
  "futures-core",
  "futures-util",
  "gloo-timers",
+ "hashbrown 0.16.0",
  "hex",
  "indexmap 2.12.0",
  "internment",
@@ -1515,6 +1516,12 @@ name = "hashbrown"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5419bdc4f6a9207fbeba6d11b604d481addf78ecd10c11ad51e76c2f6482748d"
+dependencies = [
+ "allocator-api2 0.2.21",
+ "equivalent",
+ "foldhash 0.2.0",
+ "serde",
+]
 
 [[package]]
 name = "heapless"
@@ -1944,7 +1951,6 @@ version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a02781f0897bf3bead576425bbceac9d61ffc7e4696593860e365c8ca941c870"
 dependencies = [
- "hashbrown 0.15.5",
  "memchr",
  "rustversion",
 ]
