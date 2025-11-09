@@ -6,19 +6,19 @@ use alloc::rc::Rc;
 use alloc::vec::Vec;
 use datex_core::stdlib::{future::Future, pin::Pin};
 use datex_core::std_sync::Mutex;
-use edge_net::http::io::client::Connection;
+use edge_http::io::client::Connection;
 use edge_net::ws::{FrameHeader, FrameType};
 use embassy_executor::Spawner;
 use embassy_futures::select::{Either, select};
 use embassy_net::{Stack};
 use embassy_sync::once_lock::OnceLock;
-use embedded_io_async::Read;
+use embedded_io_async::{ErrorType, Read, Write};
 use embedded_tls::{Aes128GcmSha256, NoVerify, TlsConfig, TlsConnection, TlsContext};
 use core::time::Duration;
-use edge_nal_embassy::{Dns as EmbassyDns, TcpBuffers, TcpSocket, TcpSocketRead, TcpSocketWrite};
+use edge_nal_embassy::{Dns as EmbassyDns, TcpBuffers, TcpError, TcpSocket, TcpSocketRead, TcpSocketWrite};
 use edge_nal_embassy::Tcp as EmbassyTcp;
-use edge_http::ws::{MAX_BASE64_KEY_LEN, MAX_BASE64_KEY_RESPONSE_LEN, NONCE_LEN};
-use edge_net::nal::{AddrType, Dns, TcpSplit};
+use edge_http::ws::{MAX_BASE64_KEY_LEN, MAX_BASE64_KEY_RESPONSE_LEN, NONCE_LEN, upgrade_request_headers};
+use edge_net::nal::{AddrType, Dns, TcpConnect, TcpSplit};
 use alloc::string::String;
 use rand_core::{RngCore, CryptoRng};
 
@@ -176,6 +176,7 @@ impl WebSocketClientInterfaceEmbedded {
     }
 }
 
+#[derive(Debug, Clone)]
 struct ConnectionData {
     host: String,
     port: u16,
@@ -189,39 +190,40 @@ async fn connect<'a>(
     buf: &'a mut [u8],
     tcp: &'a EmbassyTcp<'a, 10>,
     rng: Rc<dyn RngHal>,
-) -> Result<TcpSocket<'a, 10, 1024, 1024>, ()> {
+) -> Result<TcpSocket<'a, 10, 1024, 1024>, TcpError> {
 
-    let mut conn: Connection<_> = Connection::new(buf, tcp, SocketAddr::new(connection_data.ip, connection_data.port));
+    let socket = tcp.connect(SocketAddr::new(connection_data.ip, connection_data.port)).await?;
 
-    let mut nonce = [0_u8; NONCE_LEN];
-    rng.fill(&mut nonce);
+    // let mut nonce = [0_u8; NONCE_LEN];
+    // rng.fill(&mut nonce);
 
-    let mut buf = [0_u8; MAX_BASE64_KEY_LEN];
+    // let mut buf = [0_u8; MAX_BASE64_KEY_LEN];
 
-    info!("Initiating WS upgrade request");
+    // info!("Initiating WS upgrade request");
 
-    conn.initiate_ws_upgrade_request(Some(&connection_data.host), Some(&connection_data.host), "/", None, &nonce, &mut buf)
-        .await.map_err(|_| ())?;
+    // conn.initiate_ws_upgrade_request(Some(&connection_data.host), Some(&connection_data.host), "/", None, &nonce, &mut buf)
+    //     .await.map_err(|_| ())?;
 
-    info!("Waiting for WS upgrade response");
+    // info!("Waiting for WS upgrade response");
 
-    conn.initiate_response().await.unwrap();
+    // conn.initiate_response().await.unwrap();
 
-    info!("Waiting for WS upgrade confirmation");
+    // info!("Waiting for WS upgrade confirmation");
 
-    let mut buf = [0_u8; MAX_BASE64_KEY_RESPONSE_LEN];
-    if !conn.is_ws_upgrade_accepted(&nonce, &mut buf).unwrap() {
-        error!("WS upgrade failed");
-    }
+    // let mut buf = [0_u8; MAX_BASE64_KEY_RESPONSE_LEN];
+    // if !conn.is_ws_upgrade_accepted(&nonce, &mut buf).unwrap() {
+    //     error!("WS upgrade failed");
+    // }
 
-    conn.complete().await.unwrap();
 
-    // Now we have the TCP socket in a state where it can be operated as a WS connection
-    // Send some traffic to a WS echo server and read it back
+    // conn.complete().await.unwrap();
 
-    let (socket, _buf) = conn.release();
+    // // Now we have the TCP socket in a state where it can be operated as a WS connection
+    // // Send some traffic to a WS echo server and read it back
 
-    info!("TCP connection established and upgraded to WebSocket");
+    // let (socket, _buf) = conn.release();
+
+    info!("TCP connection established");
 
     Ok(socket)
 }
@@ -242,7 +244,7 @@ async fn listen(
 
     let mut buf = Box::new([0_u8; 8192]);
 
-    let result = connect(connection_data, buf.as_mut(), &tcp, rng.clone()).await;
+    let result = connect(connection_data.clone(), buf.as_mut(), &tcp, rng.clone()).await;
 
     if let Ok(mut socket) = result {
 
@@ -252,6 +254,7 @@ async fn listen(
         if let Some(tls_domain) = tls_domain {
             start_read_write_tls(
                 socket, 
+                connection_data,
                 &tls_domain, 
                 rng, 
                 receive_queue, 
@@ -262,6 +265,7 @@ async fn listen(
         else {
             start_read_write(
                 socket,
+                connection_data,
                 rng,
                 receive_queue,
                 send_queue
@@ -275,14 +279,20 @@ async fn listen(
     }
 }
 
-
 async fn start_read_write<'a, const N: usize, const TX_SZ:usize, const RX_SZ: usize>(
     mut socket: TcpSocket<'a, N, TX_SZ, RX_SZ>,
+    connection_data: ConnectionData,
     rng: Rc<dyn RngHal>,
     receive_queue: Arc<Mutex<VecDeque<u8>>>,
     send_queue: Arc<Mutex<VecDeque<u8>>>,
 ) {
-    let (read, write) = socket.split();
+    send_ws_upgrade_request(
+        &rng,
+        connection_data,
+        &rw
+    ).await;
+
+     let (read, write) = socket.split();
 
     // Run send and receive loops concurrently
     match select(
@@ -302,6 +312,7 @@ async fn start_read_write<'a, const N: usize, const TX_SZ:usize, const RX_SZ: us
 
 async fn start_read_write_tls<'a, const N: usize, const TX_SZ:usize, const RX_SZ: usize>(
     mut socket: TcpSocket<'a, N, TX_SZ, RX_SZ>, 
+    connection_data: ConnectionData,
     server_name: &str,
     mut rng: Rc<dyn RngHal>,
     receive_queue: Arc<Mutex<VecDeque<u8>>>,
@@ -368,6 +379,39 @@ async fn start_read_write_tls<'a, const N: usize, const TX_SZ:usize, const RX_SZ
     }
     info!("Websocket loop stopped");
 
+}
+
+async fn send_ws_upgrade_request<IO: TcpConnect>(
+    rng: &Rc<dyn RngHal>,
+    connection_data: ConnectionData,
+    io: &IO
+) {
+    let mut nonce = [0_u8; NONCE_LEN];
+    rng.fill(&mut nonce);
+    let mut buf: [u8; 28] = [0_u8; MAX_BASE64_KEY_LEN];
+
+    let mut rw_buf: [u8; 1024] = [0_u8; 1024];
+
+    let mut connection: Connection<_> = Connection::new(&mut rw_buf, io, SocketAddr::new(connection_data.ip, connection_data.port));
+    
+    connection.initiate_ws_upgrade_request(Some(&connection_data.host), Some(&connection_data.host), "/", None, &nonce, &mut buf)
+        .await
+        .map_err(|_| ()).unwrap();
+
+    info!("Waiting for WS upgrade response");
+
+    connection.initiate_response().await.unwrap();
+
+    info!("Waiting for WS upgrade confirmation");
+
+    let mut buf = [0_u8; MAX_BASE64_KEY_RESPONSE_LEN];
+    if !connection.is_ws_upgrade_accepted(&nonce, &mut buf).unwrap() {
+        error!("WS upgrade failed");
+    }
+
+    info!("WS upgrade completed");
+
+    connection.complete().await.unwrap();
 }
 
 
