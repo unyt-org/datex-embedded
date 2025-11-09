@@ -173,15 +173,11 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 fn get_wifi_credentials_from_config(config: RuntimeConfig) -> Option<(String, String)> {
     config.env.map(|env| {
-        let mut ssid: Option<String> = None;
-        let mut password: Option<String> = None;
-        for (key, val) in env {
-            if key == "wifi_ssid" { ssid = Some(val) }
-            else if key == "wifi_password" { password = Some(val) }
-            if let Some(ref ssid) = ssid && let Some(ref password) = password {
+        let ssid = env.get("wifi_ssid");
+        let password = env.get("wifi_password");
+        if let Some(ssid) = ssid && let Some(password) = password {
                 return Some((ssid.clone(), password.clone()));
             }
-        }
         None
     }).flatten()
 }
