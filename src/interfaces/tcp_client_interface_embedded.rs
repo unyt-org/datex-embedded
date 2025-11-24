@@ -88,7 +88,7 @@ impl TcpClientInterfaceEmbedded {
         stack: Stack<'static>,
         rng: Rc<dyn RngHal>,
     ) -> Result<TcpClientInterfaceEmbedded, TCPError> {
-        let address = Url::from_str(address).map_err(|_| TCPError::InvalidURL)?;
+        let address = Url::from_str(address).map_err(|_| TCPError::InvalidAddress)?;
         let info = ComInterfaceInfo::new();
         let interface = TcpClientInterfaceEmbedded {
             address,

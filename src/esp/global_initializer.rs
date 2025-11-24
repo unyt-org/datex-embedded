@@ -49,5 +49,21 @@ impl<'a> GlobalInitializer for EspGlobalInitializer<'a> {
             }
            
         }
+        #[cfg(feature = "tcp-client")]
+        {
+            use crate::interfaces::tcp_client_interface_embedded::{TcpClientInterfaceEmbedded, TcpClientInterfaceEmbeddedGlobalState};
+            if let Some(stack) = stack {
+                use datex_core::network::com_interfaces::com_interface::ComInterfaceFactory;
+                use esp_hal::rng::Rng;
+
+                TcpClientInterfaceEmbedded::set_global_state(TcpClientInterfaceEmbeddedGlobalState {
+                    spawner: spawner.clone(),
+                    stack: stack.clone(),
+                    rng: Rc::new(Rng::new())
+                });
+                runtime.com_hub().register_interface_factory("tcp-client".to_string(), TcpClientInterfaceEmbedded::factory);
+            }
+           
+        }
     }
 }
