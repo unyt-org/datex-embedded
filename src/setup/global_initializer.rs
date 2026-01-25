@@ -18,7 +18,7 @@ pub struct WifiCredentials {
 pub trait GlobalInitializer: Sized {
 
     /// Register all available com interface factories
-    fn register_com_interface_factories(&self, spawner: &Spawner, stack: &Option<Stack<'static>>, runtime: &Runtime);
+    fn register_com_interface_factories(&self, stack: &Option<Stack<'static>>, runtime: &Runtime);
 
     /// Initializes the DATEX global context using the provided current time
     async fn init_global_context(&self, current_time: u64);
@@ -115,7 +115,6 @@ pub trait GlobalInitializer: Sized {
         );
 
         self.register_com_interface_factories(
-            &spawner,
             &maybe_wifi_stack,
             &runtime,
         );

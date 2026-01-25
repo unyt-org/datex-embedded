@@ -1,7 +1,7 @@
 use core::future::Future;
 use alloc::format;
 use datex_core::stdlib::pin::Pin;
-use datex_core::crypto::crypto::{CryptoError, CryptoTrait};
+use datex_core::crypto::crypto::{CryptoError, CryptoResult, CryptoTrait};
 use datex_core::stdlib::vec::Vec;
 use datex_core::stdlib::boxed::Box;
 use esp_hal::rng::Rng;
@@ -43,6 +43,14 @@ impl CryptoTrait for EspCrypto {
         let mut bytes = vec![0u8; length];
         self.rng.read(&mut bytes);
         bytes
+    }
+
+    fn hash_sha256<'a>(&'a self, to_digest: &'a [u8]) -> CryptoResult<'a, [u8; 32]> {
+        todo!()
+    }
+
+    fn hkdf_sha256<'a>(&'a self, ikm: &'a [u8], salt: &'a [u8]) -> CryptoResult<'a, [u8; 32]> {
+        todo!()
     }
 
     fn gen_ed25519(&self) -> Pin<Box<dyn Future<Output=Result<(Vec<u8>, Vec<u8>), CryptoError>> + 'static>> {

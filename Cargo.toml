@@ -59,6 +59,7 @@ esp-radio = { version = "0.16.0", optional = true, features = [
   "smoltcp",
   "unstable",
 ] }
+serde = { version = "1.0.228", default-features = false, features = ["derive", "alloc"] }
 
 
 [features]

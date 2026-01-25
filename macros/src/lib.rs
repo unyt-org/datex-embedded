@@ -8,6 +8,7 @@ use proc_macro2::TokenStream as TokenStream2;
 use syn::{FnArg, Ident, ItemFn, LitStr, Pat, Signature, Token, parse::{Parse, ParseStream}, parse_macro_input, parse_quote, punctuated::Punctuated, token::Type};
 use quote::quote;
 use datex_core::{compiler::{CompileOptions, compile_script}, runtime::RuntimeConfig, serde::{Deserialize, deserializer::DatexDeserializer, error::DeserializationError}};
+use datex_core::serde::deserializer::from_dx_file;
 
 #[derive(Debug)]
 struct ParsedAttributes {
@@ -119,8 +120,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
     let config_bytes_quoted = config_bytes
         .map(|bytes| quote! {
             let config_dxb: &[u8] = &[#(#bytes),*];
-            let deserializer = datex_core_embedded::core::serde::deserializer::DatexDeserializer::from_bytes(config_dxb).unwrap();
-            let datex_config = datex_core_embedded::core::serde::Deserialize::deserialize(deserializer).unwrap();
+            let datex_config = datex_core_embedded::core::serde::deserializer::from_bytes(config_dxb).unwrap();
         });
 
     let has_stack = config_bytes_quoted.is_some();
@@ -258,8 +258,7 @@ fn get_init_code(sig: &mut Signature, has_stack: bool) -> TokenStream2 {
 
 
 fn get_datex_config(path: &PathBuf) -> Result<RuntimeConfig, DeserializationError> {
-    let deserializer = DatexDeserializer::from_dx_file(path.clone())?;
-    let config: RuntimeConfig = Deserialize::deserialize(deserializer)?;
+    let config: RuntimeConfig = from_dx_file(path.clone())?;
     Ok(config)
 }
 
