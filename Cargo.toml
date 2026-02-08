@@ -38,7 +38,7 @@ sntpc = { version = "0.6.0", default-features = false, features = [
 url = { version = "2.5.7", default-features = false, optional = true }
 
 # esp dependencies
-esp-hal = { version = "=1.0.0-rc.1", optional = true, features = [
+esp-hal = { version = "=1.0.0", optional = true, features = [
   "log-04",
   "unstable",
   "psram",
@@ -63,22 +63,17 @@ serde = { version = "1.0.228", default-features = false, features = ["derive", "
 
 
 [features]
-default = ["tcp-client"]
+default = ["tcp-client", "esp32s3"]
 
-debug = [
-    "datex-core/debug"
-]
 
 websocket-client = [
     "dep:url",
     "wifi",
-    "datex-core/com_websocket"
 ]
 
 tcp-client = [
     "dep:url",
     "wifi",
-    "datex-core/com_tcp"
 ]
 
 wifi = [
@@ -91,7 +86,6 @@ esp = [
     "dep:esp-bootloader-esp-idf",
     "dep:esp-alloc",
     "dep:esp-radio",
-    "datex-core/esp_logger"
 ]
 
 esp32 = [
