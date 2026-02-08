@@ -205,7 +205,7 @@ async fn receive_loop<'a>(
     mut socket_rc: TcpSocketRead<'a>,
     mut sender: UnboundedSender<Vec<u8>>,
 ) -> Result<!, ()> {
-    let mut buf = [0_u8; 1024];
+    let mut buf = [0_u8; 256];
 
     loop {
         let size = socket_rc.read(&mut buf).await.unwrap();
