@@ -80,9 +80,6 @@ impl TCPClientInterfaceSetupDataEmbedded {
             }
         };
 
-        info!("Connecting to TCP server at {}:{} (IP: {})", connection_data.host, connection_data.port, connection_data.ip);
-
-
         let (out_sender, mut out_receiver) = create_unbounded_channel::<Vec<u8>>();
         let out_sender = Rc::new(Mutex::new(out_sender));
 
@@ -97,13 +94,13 @@ impl TCPClientInterfaceSetupDataEmbedded {
                     let buffers = TcpBuffers::<10, 1024, 1024>::default();
                     let tcp = EmbassyTcp::new(global_state.stack.clone(), &buffers);
 
-                    let socket = tcp.connect(SocketAddr::new(connection_data.ip, connection_data.port)).await.map_err(|_| {
-                        ComInterfaceCreateError::connection_error()
-                    });
+                    info!("Connecting to TCP server at {}:{} (IP: {})", connection_data.host, connection_data.port, connection_data.ip);
+
+                    let socket = tcp.connect(SocketAddr::new(connection_data.ip, connection_data.port)).await;
                     let mut socket = match socket {
                         Ok(socket) => socket,
-                        Err(e) => {
-                            error!("Failed to connect to TCP server at {}:{} - {e}", connection_data.host, connection_data.port);
+                        Err(_) => {
+                            error!("Failed to connect to TCP server at {}:{}", connection_data.host, connection_data.port);
                             return yield Err(());
                         }
                     };
