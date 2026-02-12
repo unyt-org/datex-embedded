@@ -4,7 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-datex-core = { path = "../datex-core/crates/datex-core", default-features = false, features = ["embedded"] }
+datex-core = { path = "../datex-core/crates/datex-core", default-features = false, features = [
+    "embedded",
+    "no_std", # FIXME: use default features, not no_std flag
+] }
 datex-macros = { path = "../datex-core/crates/datex-macros" }
 datex-core-embedded-macros = { path = "./macros" }
 
@@ -38,7 +41,7 @@ sntpc = { version = "0.6.0", default-features = false, features = [
 url = { version = "2.5.7", default-features = false, optional = true }
 
 # esp dependencies
-esp-hal = { version = "=1.0.0", optional = true, features = [
+esp-hal = { version = "1.0.0-rc.1", optional = true, features = [
   "log-04",
   "unstable",
   "psram",

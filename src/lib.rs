@@ -1,6 +1,8 @@
 #![no_std]
 #![feature(never_type)]
+#![feature(gen_blocks)]
 #![allow(static_mut_refs)]
+#![feature(thread_local)]
 extern crate alloc;
 
 pub mod interfaces;
