@@ -24,11 +24,11 @@ use alloc::string::ToString;
 use alloc::boxed::Box;
 use alloc::vec;
 use core::ops::Deref;
-use datex_core::channel::mpsc::{UnboundedReceiver, UnboundedSender};
+use datex_core::channel::mpsc::{create_unbounded_channel, UnboundedReceiver, UnboundedSender};
 use datex_core::derive_setup_data;
 use datex_core::global::dxb_block::DXBBlock;
 use datex_core::network::com_hub::errors::ComInterfaceCreateError;
-use datex_core::network::com_interfaces::com_interface::factory::{ComInterfaceAsyncFactory, ComInterfaceAsyncFactoryResult, ComInterfaceConfiguration, SendCallback, SocketConfiguration, SocketProperties};
+use datex_core::network::com_interfaces::com_interface::factory::{ComInterfaceAsyncFactory, ComInterfaceAsyncFactoryResult, ComInterfaceConfiguration, SendCallback, SendSuccess, SocketConfiguration, SocketProperties};
 use datex_core::network::com_interfaces::com_interface::properties::{ComInterfaceProperties, InterfaceDirection};
 use datex_core::network::com_interfaces::default_setup_data::http_common::split_address_into_host_and_port;
 use datex_core::network::com_interfaces::default_setup_data::tcp::tcp_client::TCPClientInterfaceSetupData;
@@ -36,9 +36,6 @@ use edge_net::ws::{FrameHeader, FrameType};
 use serde::Deserialize;
 use static_cell::StaticCell;
 use crate::hal::rng::RngHal;
-
-static TCP_BUFFERS: StaticCell<TcpBuffers<10, 1024, 1024>> = StaticCell::new();
-
 
 static mut GLOBAL_STATE: Option<TcpClientInterfaceEmbeddedGlobalState> = None;
 
@@ -80,16 +77,9 @@ impl TCPClientInterfaceSetupDataEmbedded {
 
         info!("Connecting to TCP server at {}:{} (IP: {})", connection_data.host, connection_data.port, connection_data.ip);
 
-        let buffers = TCP_BUFFERS.init(TcpBuffers::default());
-        let tcp = EmbassyTcp::new(global_state.stack.clone(), buffers);
 
-        let mut socket = tcp.connect(SocketAddr::new(connection_data.ip, connection_data.port)).await.map_err(|_| {
-            ComInterfaceCreateError::connection_error()
-        })?;
-
-        let (mut read, mut write) = socket.split();
-
-        let write = Rc::new(Mutex::new(write));
+        let (out_sender, mut out_receiver) = create_unbounded_channel::<Vec<u8>>();
+        let out_sender = Rc::new(Mutex::new(out_sender));
 
         Ok(ComInterfaceConfiguration::new_single_socket(
             ComInterfaceProperties {
@@ -99,20 +89,37 @@ impl TCPClientInterfaceSetupDataEmbedded {
             SocketConfiguration::new(
                 SocketProperties::new(InterfaceDirection::InOut, 1),
                 async gen move {
+                    let buffers = TcpBuffers::<10, 1024, 1024>::default();
+                    let tcp = EmbassyTcp::new(global_state.stack.clone(), &buffers);
+
+                    let mut socket = tcp.connect(SocketAddr::new(connection_data.ip, connection_data.port)).await.map_err(|_| {
+                        ComInterfaceCreateError::connection_error()
+                    }).unwrap();
+
+                    let (mut read, mut write) = socket.split();
+
                     let mut buf = [0_u8; 256];
 
                     loop {
-                        let size = read.read(&mut buf).await.unwrap();
-                        let data = buf[0..size].to_vec();
-                        yield Ok(data);
+                        match select(read.read(&mut buf), out_receiver.next()).await {
+                            Either::First(read_result) => {
+                                let size= read_result.unwrap();
+                                let data = buf[0..size].to_vec();
+                                yield Ok(data);
+                            }
+
+                            Either::Second(outgoing) => {
+                                // write to socket
+                                if let Some(outgoing) = outgoing {
+                                    write.write(&outgoing).await.unwrap();
+                                }
+                            }
+                        }
                     }
                 },
-                SendCallback::new_async(move |block: DXBBlock| {
-                    let write = write.clone();
-                    async move {
-                        write.lock().write(&block.to_bytes()).await.unwrap();
-                        Ok(())
-                    }
+                SendCallback::new_sync(move |block: DXBBlock| {
+                    out_sender.try_lock().unwrap().start_send(block.to_bytes()).unwrap();
+                    Ok(SendSuccess::Sent)
                 })
             )
         ))

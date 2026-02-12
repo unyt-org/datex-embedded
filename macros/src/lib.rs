@@ -5,7 +5,7 @@ use std::{fs, path::PathBuf};
 use proc_macro::{TokenStream};
 use proc_macro2::Span;
 use proc_macro2::TokenStream as TokenStream2;
-use syn::{FnArg, Ident, ItemFn, LitStr, Pat, Signature, Token, parse::{Parse, ParseStream}, parse_macro_input, parse_quote, punctuated::Punctuated, token::Type};
+use syn::{FnArg, Ident, ItemFn, LitStr, Pat, Signature, Token, parse::{Parse, ParseStream}, parse_macro_input, parse_quote, punctuated::Punctuated, token::Type, Stmt};
 use quote::quote;
 use datex_core::{compiler::{CompileOptions, compile_script}, runtime::RuntimeConfig, serde::{Deserialize, deserializer::DatexDeserializer, error::DeserializationError}};
 use datex_core::serde::deserializer::from_dx_file;
@@ -98,7 +98,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
     let runtime_setup_quoted = match wifi_credentials_quoted {
         Some(wifi_credentials_quoted) => quote!{
             // runtime setup
-            let (runtime, stack) = datex_core_embedded::esp::init::init_runtime_with_wifi(
+            let (runtime_runner, stack) = datex_core_embedded::esp::init::init_runtime_with_wifi(
                 spawner,
                 &peripherals,
                 #wifi_credentials_quoted,
@@ -107,7 +107,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
         },
         None => quote!{
             // runtime setup
-            let runtime = datex_core_embedded::esp::init::init_runtime_without_wifi(
+            let runtime_runner = datex_core_embedded::esp::init::init_runtime_without_wifi(
                 spawner,
                 &peripherals,
                 datex_core_embedded::core::runtime::RuntimeConfig::default()
@@ -134,7 +134,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let statements = block.stmts;
 
-    let init_code = get_init_code(&mut sig, has_stack);
+    let init_code = get_init_code(&mut sig, has_stack, statements);
 
     // Reconstruct the function as output using parsed input
     quote!(
@@ -157,8 +157,6 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
             use alloc::string::ToString;
             use alloc::vec;
             
-            datex_core_embedded::core::logger::init_logger();
-
             // esp setup
             let config = esp_hal::Config::default().with_cpu_clock(datex_core_embedded::esp_hal::clock::CpuClock::max());
             let peripherals = esp_hal::init(config);
@@ -171,8 +169,6 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
             #runtime_setup_quoted
 
             #init_code
-
-            #(#statements)*
         }
     ).into()
 }
@@ -188,7 +184,7 @@ fn get_wifi_credentials_from_config(config: RuntimeConfig) -> Option<(String, St
     }).flatten()
 }
 
-fn get_init_code(sig: &mut Signature, has_stack: bool) -> TokenStream2 {
+fn get_init_code(sig: &mut Signature, has_stack: bool, statements: Vec<Stmt>) -> TokenStream2 {
     // extract runtime param
     let runtime_param = sig.inputs.get(0);
     let runtime_ident = match runtime_param {
@@ -237,14 +233,18 @@ fn get_init_code(sig: &mut Signature, has_stack: bool) -> TokenStream2 {
         (Some(runtime), Some(context)) => quote! {
             let #runtime: #runtime_type = runtime;
             let #context = #context_init_code;
+            #(#statements)*
         },
         (Some(runtime), None) => quote! {
             let #runtime: #runtime_type = runtime;
+            #(#statements)*
         },
         (None, Some(context)) => quote! {
             let #context = #context_init_code;
+            #(#statements)*
         },
         (None, None) => quote! {
+            #(#statements)*
         }
     };
 
@@ -253,7 +253,11 @@ fn get_init_code(sig: &mut Signature, has_stack: bool) -> TokenStream2 {
         spawner: datex_core_embedded::Spawner
     });
 
-    init_code
+    quote!{
+        runtime_runner.run(async move |runtime| {
+            #init_code
+        }).await
+    }
 }
 
 
