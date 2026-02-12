@@ -97,9 +97,16 @@ impl TCPClientInterfaceSetupDataEmbedded {
                     let buffers = TcpBuffers::<10, 1024, 1024>::default();
                     let tcp = EmbassyTcp::new(global_state.stack.clone(), &buffers);
 
-                    let mut socket = tcp.connect(SocketAddr::new(connection_data.ip, connection_data.port)).await.map_err(|_| {
+                    let socket = tcp.connect(SocketAddr::new(connection_data.ip, connection_data.port)).await.map_err(|_| {
                         ComInterfaceCreateError::connection_error()
-                    }).unwrap();
+                    });
+                    let mut socket = match socket {
+                        Ok(socket) => socket,
+                        Err(e) => {
+                            error!("Failed to connect to TCP server at {}:{} - {e}", connection_data.host, connection_data.port);
+                            return yield Err(());
+                        }
+                    };
 
                     let (mut read, mut write) = socket.split();
 
