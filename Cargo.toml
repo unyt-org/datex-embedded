@@ -7,9 +7,11 @@ edition = "2024"
 datex-core = { path = "../datex-core/crates/datex-core", default-features = false, features = [
     "embedded",
     "no_std", # FIXME: use default features, not no_std flag
+    "allow_unsigned_blocks", # TODO: remove once crypto is fully implemented for embedded
 ] }
 datex-macros = { path = "../datex-core/crates/datex-macros" }
 datex-core-embedded-macros = { path = "./macros" }
+datex-crypto-esp32 = { path = "../datex-core/crates/datex-crypto-esp32" }
 
 log = "0.4.27"
 embassy-net = { version = "0.7.0", default-features = false, features = [
@@ -63,6 +65,7 @@ esp-radio = { version = "0.16.0", optional = true, features = [
   "unstable",
 ] }
 serde = { version = "1.0.228", default-features = false, features = ["derive", "alloc"] }
+esp-println = "0.16.1"
 
 
 [features]

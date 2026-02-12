@@ -70,8 +70,13 @@ impl TCPClientInterfaceSetupDataEmbedded {
             host: host.clone(),
             port,
             ip: {
-                let dns = EmbassyDns::new(global_state.stack.clone());
-                dns.get_host_by_name(&host, AddrType::IPv4).await.unwrap()
+                // if host is already an IP address, parse it directly, otherwise resolve it via DNS
+                if let Ok(ip) = IpAddr::from_str(&host) {
+                    ip
+                } else {
+                    let dns = EmbassyDns::new(global_state.stack.clone());
+                    dns.get_host_by_name(&host, AddrType::IPv4).await.unwrap()
+                }
             }
         };
 

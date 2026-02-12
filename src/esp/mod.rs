@@ -1,3 +1,5 @@
+use esp_hal::rng::Rng;
+
 #[cfg(feature = "wifi")]
 pub mod wifi;
 pub mod timestamp_generator;

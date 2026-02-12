@@ -457,6 +457,7 @@ version = "0.1.0"
 dependencies = [
  "datex-core",
  "datex-core-embedded-macros",
+ "datex-crypto-esp32",
  "datex-macros",
  "edge-http",
  "edge-nal-embassy",
@@ -471,6 +472,7 @@ dependencies = [
  "esp-alloc",
  "esp-bootloader-esp-idf",
  "esp-hal",
+ "esp-println",
  "esp-radio",
  "esp-rtos",
  "jiff",
@@ -1190,6 +1192,19 @@ dependencies = [
  "esp-sync",
  "esp-wifi-sys",
  "log",
+]
+
+[[package]]
+name = "esp-println"
+version = "0.16.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a30e6c9fbcc01c348d46706fef8131c7775ab84c254a3cd65d0cd3f6414d592"
+dependencies = [
+ "document-features",
+ "esp-metadata-generated 0.3.0",
+ "esp-sync",
+ "log",
+ "portable-atomic",
 ]
 
 [[package]]
