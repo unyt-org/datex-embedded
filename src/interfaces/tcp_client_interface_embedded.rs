@@ -22,17 +22,19 @@ use log::{error, info};
 use url::Url;
 use alloc::string::ToString;
 use alloc::boxed::Box;
+use alloc::sync::Arc;
 use alloc::vec;
 use core::ops::Deref;
 use datex_core::channel::mpsc::{create_unbounded_channel, UnboundedReceiver, UnboundedSender};
 use datex_core::derive_setup_data;
 use datex_core::global::dxb_block::DXBBlock;
 use datex_core::network::com_hub::errors::ComInterfaceCreateError;
-use datex_core::network::com_interfaces::com_interface::factory::{ComInterfaceAsyncFactory, ComInterfaceAsyncFactoryResult, ComInterfaceConfiguration, SendCallback, SendSuccess, SocketConfiguration, SocketProperties};
+use datex_core::network::com_interfaces::com_interface::factory::{ComInterfaceAsyncFactory, ComInterfaceAsyncFactoryResult, ComInterfaceConfiguration, SendCallback, SendFailure, SendSuccess, SocketConfiguration, SocketProperties};
 use datex_core::network::com_interfaces::com_interface::properties::{ComInterfaceProperties, InterfaceDirection};
 use datex_core::network::com_interfaces::default_setup_data::http_common::split_address_into_host_and_port;
 use datex_core::network::com_interfaces::default_setup_data::tcp::tcp_client::TCPClientInterfaceSetupData;
 use edge_net::ws::{FrameHeader, FrameType};
+use futures::channel::oneshot::Sender;
 use serde::Deserialize;
 use static_cell::StaticCell;
 use crate::hal::rng::RngHal;
@@ -80,56 +82,58 @@ impl TCPClientInterfaceSetupDataEmbedded {
             }
         };
 
-        let (out_sender, mut out_receiver) = create_unbounded_channel::<Vec<u8>>();
-        let out_sender = Rc::new(Mutex::new(out_sender));
 
         Ok(ComInterfaceConfiguration::new_single_socket(
             ComInterfaceProperties {
                 name: Some(self.address.to_string()),
                 ..Self::get_default_properties()
             },
-            SocketConfiguration::new(
+            SocketConfiguration::new_combined(
                 SocketProperties::new(InterfaceDirection::InOut, 1),
-                async gen move {
-                    let buffers = TcpBuffers::<10, 1024, 1024>::default();
-                    let tcp = EmbassyTcp::new(global_state.stack.clone(), &buffers);
+                |mut out_receiver: UnboundedReceiver<(DXBBlock, Sender<Result<(), SendFailure>>)>| {
+                    async gen move {
+                        let buffers = TcpBuffers::<10, 1024, 1024>::default();
+                        let tcp = EmbassyTcp::new(global_state.stack.clone(), &buffers);
 
-                    info!("Connecting to TCP server at {}:{} (IP: {})", connection_data.host, connection_data.port, connection_data.ip);
+                        info!("Connecting to TCP server at {}:{} (IP: {})", connection_data.host, connection_data.port, connection_data.ip);
 
-                    let socket = tcp.connect(SocketAddr::new(connection_data.ip, connection_data.port)).await;
-                    let mut socket = match socket {
-                        Ok(socket) => socket,
-                        Err(_) => {
-                            error!("Failed to connect to TCP server at {}:{}", connection_data.host, connection_data.port);
-                            return yield Err(());
-                        }
-                    };
-
-                    let (mut read, mut write) = socket.split();
-
-                    let mut buf = [0_u8; 256];
-
-                    loop {
-                        match select(read.read(&mut buf), out_receiver.next()).await {
-                            Either::First(read_result) => {
-                                let size= read_result.unwrap();
-                                let data = buf[0..size].to_vec();
-                                yield Ok(data);
+                        let socket = tcp.connect(SocketAddr::new(connection_data.ip, connection_data.port)).await;
+                        let mut socket = match socket {
+                            Ok(socket) => socket,
+                            Err(_) => {
+                                error!("Failed to connect to TCP server at {}:{}", connection_data.host, connection_data.port);
+                                return yield Err(());
                             }
+                        };
 
-                            Either::Second(outgoing) => {
-                                // write to socket
-                                if let Some(outgoing) = outgoing {
-                                    write.write(&outgoing).await.unwrap();
+                        let (mut read, mut write) = socket.split();
+
+                        let mut buf = [0_u8; 256];
+
+                        loop {
+                            match select(read.read(&mut buf), out_receiver.next()).await {
+                                Either::First(read_result) => {
+                                    let size= read_result.unwrap();
+                                    let data = buf[0..size].to_vec();
+                                    yield Ok(data);
+                                }
+
+                                Either::Second(outgoing) => {
+                                    // write to socket
+                                    if let Some((outgoing, sender)) = outgoing {
+                                        if let Err(e) = write.write(&outgoing.to_bytes()).await {
+                                            error!("Failed to write to TCP socket");
+                                            sender.send(Err(SendFailure(Box::new(outgoing)))).unwrap();
+                                        }
+                                        else {
+                                            sender.send(Ok(())).unwrap();
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-                },
-                SendCallback::new_sync(move |block: DXBBlock| {
-                    out_sender.try_lock().unwrap().start_send(block.to_bytes()).unwrap();
-                    Ok(SendSuccess::Sent)
-                })
+                }
             )
         ))
     }

@@ -475,6 +475,7 @@ dependencies = [
  "esp-println",
  "esp-radio",
  "esp-rtos",
+ "futures",
  "jiff",
  "log",
  "serde",
