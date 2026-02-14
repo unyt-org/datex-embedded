@@ -55,31 +55,30 @@ pub trait GlobalInitializer: Sized {
     #[cfg(feature = "wifi")]
     async fn init_datex_runtime_with_wifi(
         self,
-        runtime_config: RuntimeConfig,
+        runtime: Runtime,
         wifi_credentials: WifiCredentials,
         spawner: Spawner,
-    ) -> (RuntimeRunner, Stack<'static>) {
-        let (runner, maybe_stack) = self.init_datex_runtime(
-            runtime_config,
+    ) -> Stack<'static> {
+        let maybe_stack = self.init_datex_runtime(
+            runtime,
             Some(wifi_credentials),
             spawner
         ).await;
-        (runner, maybe_stack.unwrap())
+        maybe_stack.unwrap()
     }
 
     /// Initializes a new DATEX runtime instance, running the base initialization before
     /// No Wifi connection is created, so there is no network time sync possible
     async fn init_datex_runtime_without_wifi(
         self,
-        runtime_config: RuntimeConfig,
+        runtime: Runtime,
         spawner: Spawner,
-    ) -> RuntimeRunner {
-        let (runner, _) = self.init_datex_runtime(
-            runtime_config,
+    )  {
+        self.init_datex_runtime(
+            runtime,
             None,
             spawner
         ).await;
-        runner
     }
 
     /// Initializes a new DATEX runtime instance, running the base initialization before
@@ -89,10 +88,10 @@ pub trait GlobalInitializer: Sized {
     /// - The Wifi stack will be returned
     async fn init_datex_runtime(
         &self,
-        runtime_config: RuntimeConfig,
+        runtime: Runtime,
         wifi_credentials: Option<WifiCredentials>,
         spawner: Spawner,
-    ) -> (RuntimeRunner, Option<Stack<'static>>) {
+    ) -> Option<Stack<'static>> {
         
         let (current_time, maybe_wifi_stack) = match wifi_credentials {
             Some(wifi_credentials) => {
@@ -111,18 +110,13 @@ pub trait GlobalInitializer: Sized {
 
         // initialize global context
         self.init_global_context(current_time).await;
-
-        
-        let runner = RuntimeRunner::new(
-            runtime_config,
-        );
         
         self.register_com_interface_factories(
             &maybe_wifi_stack,
-            runner.runtime.com_hub()
+            runtime.com_hub()
         );
         
-        (runner, maybe_wifi_stack)
+        maybe_wifi_stack
     }
 
 }
