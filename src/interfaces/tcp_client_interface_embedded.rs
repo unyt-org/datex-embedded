@@ -113,9 +113,23 @@ impl TCPClientInterfaceSetupDataEmbedded {
                         loop {
                             match select(read.read(&mut buf), out_receiver.next()).await {
                                 Either::First(read_result) => {
-                                    let size= read_result.unwrap();
-                                    let data = buf[0..size].to_vec();
-                                    yield Ok(data);
+                                    match (read_result) {
+                                        Err(e) => {
+                                            error!("Failed to read from TCP socket: {e:?}");
+                                            return yield Err(());
+                                        }
+                                        Ok(size) => {
+                                            // size 0 indicates that the connection was closed by the peer
+                                            if size == 0 {
+                                                info!("TCP connection closed by peer");
+                                                return yield Err(());
+                                            }
+                                            else {
+                                                let data = buf[0..size].to_vec();
+                                                yield Ok(data);
+                                            }
+                                        }
+                                    }
                                 }
 
                                 Either::Second(outgoing) => {
