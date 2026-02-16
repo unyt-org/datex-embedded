@@ -1,4 +1,3 @@
-use std::str::FromStr;
 use proc_macro::{TokenStream};
 use proc_macro2::TokenStream as TokenStream2;
 use syn::{FnArg, ItemFn, Pat, Signature, Token, parse::{Parse, ParseStream}, parse_macro_input, parse_quote, Stmt};

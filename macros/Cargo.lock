@@ -430,7 +430,6 @@ dependencies = [
  "datex-core",
  "proc-macro2",
  "quote",
- "serde",
  "syn",
 ]
 
