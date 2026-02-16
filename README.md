@@ -29,16 +29,16 @@ To build for an ESP32 target, enable the feature flag for your specific target.
 - `esp32s3`
 
 
-### Using the datex_core_embedded::main macro
+### Using the datex_embedded::main macro
 
-The `datex_core_embedded::main` macro provides an easy way to use an async main function with an initialized DATEX runtime:
+The `datex_embedded::main` macro provides an easy way to use an async main function with an initialized DATEX runtime:
 
 ```rs
 #![no_std]
 #![no_main]
 use datex_core::runtime::Runtime;
 
-#[datex_core_embedded::main("../config.dx")]
+#[datex_embedded::main("../config.dx")]
 async fn main(runtime: Runtime) {
     info!("DATEX runtime version: {}", runtime.version);
 
@@ -70,7 +70,7 @@ Here is a simple example config file that defines Wifi credentials and a websock
 
 To initialize a new runtime instance, you can also use `init_runtime_with_wifi`/`init_runtime_without_wifi`:
 ```rs
-use datex_core_embedded::esp::init::init_runtime_with_wifi;
+use datex_embedded::esp::init::init_runtime_with_wifi;
 use datex_core::logger::{init_logger};
 
 let spawner: embassy_executor::Spawner = ...;

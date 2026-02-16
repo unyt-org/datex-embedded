@@ -9,7 +9,7 @@ pub mod interfaces;
 pub mod setup;
 pub mod hal;
 
-pub use datex_core_embedded_macros::*;
+pub use datex_embedded_macros::*;
 
 pub use embassy_executor::Spawner;
 pub use datex_core as core;

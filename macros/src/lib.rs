@@ -15,7 +15,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
     let wifi_credentials = config.as_ref().map(|config| get_wifi_credentials_from_config(config)).flatten();
     let wifi_credentials_quoted = wifi_credentials.map(|(ssid, password)| {
         quote! {
-            datex_core_embedded::setup::global_initializer::WifiCredentials { ssid: #ssid.to_string(), password: #password.to_string() }
+            datex_embedded::setup::global_initializer::WifiCredentials { ssid: #ssid.to_string(), password: #password.to_string() }
         }
     });
 
@@ -25,7 +25,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
     let runtime_setup_quoted = match wifi_credentials_quoted {
         Some(wifi_credentials_quoted) => quote!{
             // runtime setup
-            let stack = datex_core_embedded::esp::init::init_runtime_with_wifi(
+            let stack = datex_embedded::esp::init::init_runtime_with_wifi(
                 spawner,
                 &peripherals,
                 #wifi_credentials_quoted,
@@ -34,7 +34,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
         },
         None => quote!{
             // runtime setup
-            datex_core_embedded::esp::init::init_runtime_without_wifi(
+            datex_embedded::esp::init::init_runtime_without_wifi(
                 spawner,
                 &peripherals,
                 runtime
@@ -45,7 +45,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
     let datex_main = datex_main_impl_with_config(DatexMainInput {
         parsed_attributes,
         func: original_function,
-        datex_core_namespace: "datex_core_embedded::core",
+        datex_core_namespace: "datex_embedded::core",
         setup: Some(quote!{
             extern crate alloc;
             use alloc::string::ToString;
@@ -54,18 +54,18 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
             esp_println::logger::init_logger(log::LevelFilter::Info);
         
             // esp setup
-            let config = esp_hal::Config::default().with_cpu_clock(datex_core_embedded::esp_hal::clock::CpuClock::max());
+            let config = esp_hal::Config::default().with_cpu_clock(datex_embedded::esp_hal::clock::CpuClock::max());
             let peripherals = esp_hal::init(config);
-            datex_core_embedded::esp_alloc::heap_allocator!(size: 200 * 1024);
+            datex_embedded::esp_alloc::heap_allocator!(size: 200 * 1024);
             let timg0 = esp_hal::timer::timg::TimerGroup::new(unsafe {peripherals.TIMG0.clone_unchecked()});
-            datex_core_embedded::esp_rtos::start(timg0.timer0);
+            datex_embedded::esp_rtos::start(timg0.timer0);
         }),
         init: Some(runtime_setup_quoted),
         pre_body: Some(context_init_code),
-        additional_attributes: vec![parse_quote! {#[datex_core_embedded::esp_rtos::main]}],
+        additional_attributes: vec![parse_quote! {#[datex_embedded::esp_rtos::main]}],
         custom_main_inputs: vec![
             parse_quote! {
-                spawner: datex_core_embedded::Spawner
+                spawner: datex_embedded::Spawner
             }
         ],
         enforce_main_name: true,
@@ -81,7 +81,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
 
         // This creates a default app-descriptor required by the esp-idf bootloader.
         // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
-        datex_core_embedded::esp_bootloader_esp_idf::esp_app_desc!();
+        datex_embedded::esp_bootloader_esp_idf::esp_app_desc!();
 
         // main
         #datex_main
@@ -115,14 +115,14 @@ fn get_context_init_code(sig: &Signature, has_stack: bool) -> TokenStream2 {
         Some(context_ident) => {
             let context_init_code = match has_stack {
                 true => quote!{
-                    datex_core_embedded::esp::context::Context {
+                    datex_embedded::esp::context::Context {
                         peripherals,
                         stack: Some(stack),
                         spawner,
                     }
                 },
                 false => quote!{
-                    datex_core_embedded::esp::context::Context {
+                    datex_embedded::esp::context::Context {
                         peripherals,
                         stack: None,
                         spawner,
