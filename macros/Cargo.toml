@@ -11,4 +11,4 @@ syn = { version = "2", features = ["full"] }
 quote = "1"
 proc-macro2 = "1"
 
-datex-core = { git = "https://github.com/unyt-org/datex-core", branch = "refactor/update-loop", default-features = false, features = ["std", "compiler", "tokio_runtime"] }
+datex-core = { git = "https://github.com/unyt-org/datex", branch = "refactor/update-loop", default-features = false, features = ["std", "compiler", "tokio_runtime"] }

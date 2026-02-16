@@ -329,7 +329,7 @@ dependencies = [
 [[package]]
 name = "datex-core"
 version = "0.0.8"
-source = "git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop#338b7c9f8a278eb4da42bd02c4a7fd0f69fea251"
+source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#1e5d00b6f758910a65b70e06caa0c3a87b7574a4"
 dependencies = [
  "ariadne",
  "async-select",
@@ -368,6 +368,7 @@ dependencies = [
  "quote",
  "ringmap",
  "serde",
+ "serde-big-array",
  "serde_json",
  "serde_with",
  "spin",
@@ -385,7 +386,7 @@ dependencies = [
 [[package]]
 name = "datex-crypto-esp32"
 version = "0.0.1"
-source = "git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop#338b7c9f8a278eb4da42bd02c4a7fd0f69fea251"
+source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#1e5d00b6f758910a65b70e06caa0c3a87b7574a4"
 dependencies = [
  "datex-crypto-facade",
  "esp-hal",
@@ -396,7 +397,7 @@ dependencies = [
 [[package]]
 name = "datex-crypto-facade"
 version = "0.0.1"
-source = "git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop#338b7c9f8a278eb4da42bd02c4a7fd0f69fea251"
+source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#1e5d00b6f758910a65b70e06caa0c3a87b7574a4"
 dependencies = [
  "bs58",
 ]
@@ -404,7 +405,7 @@ dependencies = [
 [[package]]
 name = "datex-crypto-native"
 version = "0.0.1"
-source = "git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop#338b7c9f8a278eb4da42bd02c4a7fd0f69fea251"
+source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#1e5d00b6f758910a65b70e06caa0c3a87b7574a4"
 dependencies = [
  "datex-crypto-facade",
  "openssl",
@@ -415,7 +416,7 @@ dependencies = [
 [[package]]
 name = "datex-crypto-web"
 version = "0.0.1"
-source = "git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop#338b7c9f8a278eb4da42bd02c4a7fd0f69fea251"
+source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#1e5d00b6f758910a65b70e06caa0c3a87b7574a4"
 dependencies = [
  "datex-crypto-facade",
  "wasm-bindgen",
@@ -436,7 +437,7 @@ dependencies = [
 [[package]]
 name = "datex-macros-internal"
 version = "0.0.1"
-source = "git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop#338b7c9f8a278eb4da42bd02c4a7fd0f69fea251"
+source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#1e5d00b6f758910a65b70e06caa0c3a87b7574a4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -705,7 +706,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "102871054f8dd98202177b9890cb4b71d0c6fe1f1413b7a379a8e0841fc2473c"
 dependencies = [
  "document-features",
- "esp-metadata-generated 0.3.0",
+ "esp-metadata-generated",
  "serde",
  "serde_yaml",
  "somni-expr",
@@ -713,9 +714,9 @@ dependencies = [
 
 [[package]]
 name = "esp-hal"
-version = "1.0.0-rc.1"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f75242d788e67fc7ce51308019c0ff5d5103f989721577bb566b02710ef1ba79"
+checksum = "54786287c0a61ca0f78cb0c338a39427551d1be229103b4444591796c579e093"
 dependencies = [
  "bitfield",
  "bitflags",
@@ -740,7 +741,7 @@ dependencies = [
  "enumset",
  "esp-config",
  "esp-hal-procmacros",
- "esp-metadata-generated 0.2.0",
+ "esp-metadata-generated",
  "esp-riscv-rt",
  "esp-rom-sys",
  "esp-sync",
@@ -770,9 +771,9 @@ dependencies = [
 
 [[package]]
 name = "esp-hal-procmacros"
-version = "0.20.0"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fd82a6506fb08d53a1086d165d92f085717aa9c59e67ac87a9e6f8acdcf6897"
+checksum = "3e025a7a7a0affdb4ff913b5c4494aef96ee03d085bf83c27453ae3a71d50da6"
 dependencies = [
  "document-features",
  "object",
@@ -782,12 +783,6 @@ dependencies = [
  "syn",
  "termcolor",
 ]
-
-[[package]]
-name = "esp-metadata-generated"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b18b1787dd3adea642fb529dd83fe558a08ace365bbaede4643a8959992900f4"
 
 [[package]]
 name = "esp-metadata-generated"
@@ -814,7 +809,7 @@ checksum = "cd66cccc6dd2d13e9f33668a57717ab14a6d217180ec112e6be533de93e7ecbf"
 dependencies = [
  "cfg-if",
  "document-features",
- "esp-metadata-generated 0.3.0",
+ "esp-metadata-generated",
 ]
 
 [[package]]
@@ -827,7 +822,7 @@ dependencies = [
  "document-features",
  "embassy-sync 0.6.2",
  "embassy-sync 0.7.2",
- "esp-metadata-generated 0.3.0",
+ "esp-metadata-generated",
  "riscv",
  "xtensa-lx",
 ]
@@ -2005,6 +2000,15 @@ checksum = "9a8e94ea7f378bd32cbbd37198a4a91436180c5bb472411e48b5ec2e2124ae9e"
 dependencies = [
  "serde_core",
  "serde_derive",
+]
+
+[[package]]
+name = "serde-big-array"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11fc7cc2c76d73e0f27ee52abbd64eec84d46f370c88371120433196934e4b7f"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

@@ -1,6 +1,6 @@
-# DATEX Core (Embedded)
+# DATEX (Embedded)
 
-This is an extension crate for the [datex-core crate](https://github.com/unyt-org/datex-core) that provides interfaces and helpers
+This is an extension crate for the [datex core crate](https://github.com/unyt-org/datex) that provides interfaces and helpers
 for running DATEX on embedded targets.
 
 This crate is nostd-compatible and supports various embedded targets, including:
