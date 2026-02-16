@@ -92,7 +92,7 @@ impl TCPClientInterfaceSetupDataEmbedded {
                 SocketProperties::new(InterfaceDirection::InOut, 1),
                 |mut out_receiver: UnboundedReceiver<(DXBBlock, Sender<Result<(), SendFailure>>)>| {
                     async gen move {
-                        let buffers = TcpBuffers::<10, 1024, 1024>::default();
+                        let buffers = TcpBuffers::<10, 1024, 1024>::new();
                         let tcp = EmbassyTcp::new(global_state.stack.clone(), &buffers);
 
                         info!("Connecting to TCP server at {}:{} (IP: {})", connection_data.host, connection_data.port, connection_data.ip);

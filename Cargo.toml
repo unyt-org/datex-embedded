@@ -13,7 +13,7 @@ datex-macros = { git = "https://github.com/unyt-org/datex-core", branch = "refac
 datex-core-embedded-macros = { path = "./macros" }
 
 log = "0.4.27"
-embassy-net = { version = "0.7.0", default-features = false, features = [
+embassy-net = { version = "0.8.0", default-features = false, features = [
   "dhcpv4",
   "log",
   "medium-ethernet",
@@ -27,35 +27,33 @@ embedded-io = "0.7.1"
 embedded-io-async = { version = "0.7.0", features = ["alloc"] }
 embassy-executor = { version = "0.9.0", features = ["log"] }
 embassy-time = { version = "0.5.0", features = ["log"] }
-edge-net = { version = "0.11.2", features = ["io"]}
-edge-nal-embassy = { version = "0.6.0", default-features = false, features = ["dns", "tcp", "proto-ipv4"] }
-edge-http = "0.6.1"
+edge-net = { version = "0.13.1", features = ["io"]}
+edge-nal-embassy = { version = "0.8.1", default-features = false, features = ["dns", "tcp", "proto-ipv4"] }
+edge-http = "0.7.0"
 embassy-sync = "0.7.2"
 embassy-futures = "0.1.2"
 static_cell = "2.1.1"
 jiff = { version = "0.2.10", default-features = false, features = ["static"] }
-sntpc = { version = "0.6.0", default-features = false, features = [
-    "embassy-socket",
-] }
+sntpc = { version = "0.8.1", default-features = false }
 
 # websocket dependencies
 url = { version = "2.5.7", default-features = false, optional = true }
 
 # esp dependencies
-esp-hal = { version = "1.0.0-rc.1", optional = true, features = [
+esp-hal = { version = "1.0.0", optional = true, features = [
   "log-04",
   "unstable",
   "psram",
 ] }
-esp-rtos = { version = "0.1.1", optional = true, features = [
+esp-rtos = { version = "0.2.0", optional = true, features = [
   "embassy",
   "esp-alloc",
   "esp-radio",
   "log-04",
 ] }
-esp-bootloader-esp-idf = { version = "0.3.0", optional = true }
+esp-bootloader-esp-idf = { version = "0.4.0", optional = true }
 esp-alloc = {version = "0.9.0", optional = true}
-esp-radio = { version = "0.16.0", optional = true, features = [
+esp-radio = { version = "0.17.0", optional = true, features = [
   "ble",
   "coex",
   "esp-alloc",
@@ -66,6 +64,7 @@ esp-radio = { version = "0.16.0", optional = true, features = [
 serde = { version = "1.0.228", default-features = false, features = ["derive", "alloc"] }
 esp-println = "0.16.1"
 futures = { version = "0.3.31", default-features = false, features = ["alloc", "async-await"]}
+sntpc-net-embassy = "0.8.0"
 
 
 [features]
