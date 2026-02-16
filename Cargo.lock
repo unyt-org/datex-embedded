@@ -431,61 +431,6 @@ dependencies = [
 [[package]]
 name = "datex-core"
 version = "0.0.8"
-dependencies = [
- "ariadne",
- "async-select",
- "async-trait",
- "bigdecimal",
- "binrw",
- "bytes",
- "cfg-if",
- "datex-crypto-esp32 0.0.1",
- "datex-crypto-facade 0.0.1",
- "datex-crypto-native 0.0.1",
- "datex-crypto-web 0.0.1",
- "datex-macros-internal 0.0.1",
- "dotenvy",
- "flexi_logger",
- "foldhash 0.2.0",
- "futures",
- "futures-core",
- "futures-util",
- "gloo-timers",
- "hex",
- "indexmap 2.13.0",
- "internment",
- "itertools",
- "log",
- "logos",
- "modular-bitfield",
- "num",
- "num-bigint",
- "num-integer",
- "num-traits",
- "num_enum",
- "ordered-float",
- "pretty",
- "proc-macro2",
- "quote",
- "ringmap",
- "serde",
- "serde_json",
- "serde_with",
- "spin",
- "strum",
- "strum_macros",
- "syn 2.0.116",
- "thiserror",
- "tokio",
- "tsify",
- "url",
- "wasm-bindgen",
- "wasm-bindgen-futures",
-]
-
-[[package]]
-name = "datex-core"
-version = "0.0.8"
 source = "git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop#338b7c9f8a278eb4da42bd02c4a7fd0f69fea251"
 dependencies = [
  "ariadne",
@@ -497,11 +442,11 @@ dependencies = [
  "binrw",
  "bytes",
  "cfg-if",
- "datex-crypto-esp32 0.0.1 (git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop)",
- "datex-crypto-facade 0.0.1 (git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop)",
- "datex-crypto-native 0.0.1 (git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop)",
- "datex-crypto-web 0.0.1 (git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop)",
- "datex-macros-internal 0.0.1 (git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop)",
+ "datex-crypto-esp32",
+ "datex-crypto-facade",
+ "datex-crypto-native",
+ "datex-crypto-web",
+ "datex-macros-internal",
  "dotenvy",
  "embassy-executor",
  "embassy-futures",
@@ -549,7 +494,7 @@ dependencies = [
 name = "datex-core-embedded"
 version = "0.1.0"
 dependencies = [
- "datex-core 0.0.8 (git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop)",
+ "datex-core",
  "datex-core-embedded-macros",
  "datex-macros",
  "edge-http",
@@ -581,7 +526,7 @@ dependencies = [
 name = "datex-core-embedded-macros"
 version = "0.1.0"
 dependencies = [
- "datex-core 0.0.8",
+ "datex-core",
  "proc-macro2",
  "quote",
  "serde",
@@ -591,29 +536,12 @@ dependencies = [
 [[package]]
 name = "datex-crypto-esp32"
 version = "0.0.1"
-dependencies = [
- "datex-crypto-facade 0.0.1",
- "esp-hal",
- "spin",
- "static_cell",
-]
-
-[[package]]
-name = "datex-crypto-esp32"
-version = "0.0.1"
 source = "git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop#338b7c9f8a278eb4da42bd02c4a7fd0f69fea251"
 dependencies = [
- "datex-crypto-facade 0.0.1 (git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop)",
+ "datex-crypto-facade",
  "esp-hal",
  "spin",
  "static_cell",
-]
-
-[[package]]
-name = "datex-crypto-facade"
-version = "0.0.1"
-dependencies = [
- "bs58",
 ]
 
 [[package]]
@@ -627,19 +555,9 @@ dependencies = [
 [[package]]
 name = "datex-crypto-native"
 version = "0.0.1"
-dependencies = [
- "datex-crypto-facade 0.0.1",
- "openssl",
- "rand",
- "uuid",
-]
-
-[[package]]
-name = "datex-crypto-native"
-version = "0.0.1"
 source = "git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop#338b7c9f8a278eb4da42bd02c4a7fd0f69fea251"
 dependencies = [
- "datex-crypto-facade 0.0.1 (git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop)",
+ "datex-crypto-facade",
  "openssl",
  "rand",
  "uuid",
@@ -648,19 +566,9 @@ dependencies = [
 [[package]]
 name = "datex-crypto-web"
 version = "0.0.1"
-dependencies = [
- "datex-crypto-facade 0.0.1",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
-]
-
-[[package]]
-name = "datex-crypto-web"
-version = "0.0.1"
 source = "git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop#338b7c9f8a278eb4da42bd02c4a7fd0f69fea251"
 dependencies = [
- "datex-crypto-facade 0.0.1 (git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop)",
+ "datex-crypto-facade",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -671,16 +579,7 @@ name = "datex-macros"
 version = "0.1.4"
 source = "git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop#338b7c9f8a278eb4da42bd02c4a7fd0f69fea251"
 dependencies = [
- "datex-core 0.0.8 (git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop)",
- "proc-macro2",
- "quote",
- "syn 2.0.116",
-]
-
-[[package]]
-name = "datex-macros-internal"
-version = "0.0.1"
-dependencies = [
+ "datex-core",
  "proc-macro2",
  "quote",
  "syn 2.0.116",

@@ -12,4 +12,4 @@ quote = "1"
 proc-macro2 = "1"
 serde = { version = "1.0" }
 
-datex-core = { path = "../../datex-core/crates/datex-core", default-features = false, features = ["std", "compiler", "tokio_runtime"] }
+datex-core = { git = "https://github.com/unyt-org/datex-core", branch = "refactor/update-loop", default-features = false, features = ["std", "compiler", "tokio_runtime"] }
