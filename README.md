@@ -10,7 +10,7 @@ This crate is nostd-compatible and supports various embedded targets, including:
 
 ### Feature Flags
 
-To get started, add this crate to you project with `cargo add datex-core-embedded`. 
+To get started, add this crate to you project with `cargo add datex-embedded`. 
 
 This crate has no default feature flags, so to use it, you probably want to enable additional features:
 

@@ -491,50 +491,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "datex-core-embedded"
-version = "0.1.0"
-dependencies = [
- "datex-core",
- "datex-core-embedded-macros",
- "datex-macros",
- "edge-http",
- "edge-nal-embassy",
- "edge-net",
- "embassy-executor",
- "embassy-futures",
- "embassy-net",
- "embassy-sync 0.7.2",
- "embassy-time",
- "embedded-io 0.7.1",
- "embedded-io-async 0.7.0",
- "esp-alloc",
- "esp-bootloader-esp-idf",
- "esp-hal",
- "esp-println",
- "esp-radio",
- "esp-rtos",
- "futures",
- "jiff",
- "log",
- "serde",
- "sntpc",
- "sntpc-net-embassy",
- "static_cell",
- "url",
-]
-
-[[package]]
-name = "datex-core-embedded-macros"
-version = "0.1.0"
-dependencies = [
- "datex-core",
- "proc-macro2",
- "quote",
- "serde",
- "syn 2.0.116",
-]
-
-[[package]]
 name = "datex-crypto-esp32"
 version = "0.0.1"
 source = "git+https://github.com/unyt-org/datex-core?branch=refactor%2Fupdate-loop#338b7c9f8a278eb4da42bd02c4a7fd0f69fea251"
@@ -573,6 +529,50 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
+]
+
+[[package]]
+name = "datex-embedded"
+version = "0.1.0"
+dependencies = [
+ "datex-core",
+ "datex-embedded-macros",
+ "datex-macros",
+ "edge-http",
+ "edge-nal-embassy",
+ "edge-net",
+ "embassy-executor",
+ "embassy-futures",
+ "embassy-net",
+ "embassy-sync 0.7.2",
+ "embassy-time",
+ "embedded-io 0.7.1",
+ "embedded-io-async 0.7.0",
+ "esp-alloc",
+ "esp-bootloader-esp-idf",
+ "esp-hal",
+ "esp-println",
+ "esp-radio",
+ "esp-rtos",
+ "futures",
+ "jiff",
+ "log",
+ "serde",
+ "sntpc",
+ "sntpc-net-embassy",
+ "static_cell",
+ "url",
+]
+
+[[package]]
+name = "datex-embedded-macros"
+version = "0.1.0"
+dependencies = [
+ "datex-core",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "syn 2.0.116",
 ]
 
 [[package]]

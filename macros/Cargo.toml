@@ -1,5 +1,5 @@
 [package]
-name = "datex-core-embedded-macros"
+name = "datex-embedded-macros"
 version = "0.1.0"
 edition = "2024"
 

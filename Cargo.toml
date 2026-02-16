@@ -1,5 +1,5 @@
 [package]
-name = "datex-core-embedded"
+name = "datex-embedded"
 version = "0.1.0"
 edition = "2024"
 
@@ -10,7 +10,7 @@ datex-core = { git = "https://github.com/unyt-org/datex-core", branch = "refacto
     "allow_unsigned_blocks", # TODO: remove once crypto is fully implemented for embedded
 ] }
 datex-macros = { git = "https://github.com/unyt-org/datex-core", branch = "refactor/update-loop" }
-datex-core-embedded-macros = { path = "./macros" }
+datex-embedded-macros = { path = "./macros" }
 
 log = "0.4.27"
 embassy-net = { version = "0.8.0", default-features = false, features = [
