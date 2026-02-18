@@ -5,8 +5,6 @@ edition = "2024"
 
 [dependencies]
 datex-core = { git = "https://github.com/unyt-org/datex", branch = "refactor/update-loop", default-features = false, features = [
-    "embedded",
-    "no_std", # FIXME: use default features, not no_std flag
     "allow_unsigned_blocks", # TODO: remove once crypto is fully implemented for embedded
 ] }
 datex-macros = { git = "https://github.com/unyt-org/datex", branch = "refactor/update-loop" }
@@ -91,6 +89,7 @@ esp = [
     "dep:esp-bootloader-esp-idf",
     "dep:esp-alloc",
     "dep:esp-radio",
+    "datex-core/target_esp32"
 ]
 
 esp32 = [
