@@ -423,7 +423,7 @@ dependencies = [
 [[package]]
 name = "datex-core"
 version = "0.0.8"
-source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#a0e9c74b55fbf2825cee4c5757af2742a26583e0"
+source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#f0eed35c8749ff1b4eab7d68caafffe0d2a9fac9"
 dependencies = [
  "ariadne",
  "async-select",
@@ -480,7 +480,7 @@ dependencies = [
 [[package]]
 name = "datex-crypto-esp32"
 version = "0.0.1"
-source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#a0e9c74b55fbf2825cee4c5757af2742a26583e0"
+source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#f0eed35c8749ff1b4eab7d68caafffe0d2a9fac9"
 dependencies = [
  "datex-crypto-facade",
  "esp-hal",
@@ -491,7 +491,7 @@ dependencies = [
 [[package]]
 name = "datex-crypto-facade"
 version = "0.0.1"
-source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#a0e9c74b55fbf2825cee4c5757af2742a26583e0"
+source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#f0eed35c8749ff1b4eab7d68caafffe0d2a9fac9"
 dependencies = [
  "bs58",
 ]
@@ -499,7 +499,7 @@ dependencies = [
 [[package]]
 name = "datex-crypto-native"
 version = "0.0.1"
-source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#a0e9c74b55fbf2825cee4c5757af2742a26583e0"
+source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#f0eed35c8749ff1b4eab7d68caafffe0d2a9fac9"
 dependencies = [
  "datex-crypto-facade",
  "openssl",
@@ -553,7 +553,7 @@ dependencies = [
 [[package]]
 name = "datex-macros"
 version = "0.1.4"
-source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#a0e9c74b55fbf2825cee4c5757af2742a26583e0"
+source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#f0eed35c8749ff1b4eab7d68caafffe0d2a9fac9"
 dependencies = [
  "datex-core",
  "proc-macro2",
@@ -564,7 +564,7 @@ dependencies = [
 [[package]]
 name = "datex-macros-internal"
 version = "0.0.1"
-source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#a0e9c74b55fbf2825cee4c5757af2742a26583e0"
+source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#f0eed35c8749ff1b4eab7d68caafffe0d2a9fac9"
 dependencies = [
  "proc-macro2",
  "quote",
