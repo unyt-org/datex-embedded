@@ -77,9 +77,9 @@ async fn connection(mut controller: WifiController<'static>, credentials: WifiCr
                     .with_ssid(credentials.ssid.clone())
                     .with_password(credentials.password.clone());
 
-            match credentials.auth_method {
+            match &credentials.auth_method {
                 Some(val) => {
-                    let auth_method = parse_auth_method(&val);
+                    let auth_method = parse_auth_method(val);
                     match auth_method {
                         Some(auth_method) => {
                             client_config = client_config.with_auth_method(auth_method);

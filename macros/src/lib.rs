@@ -13,8 +13,17 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let wifi_credentials = config.as_ref().map(|config| get_wifi_credentials_from_config(config)).flatten();
     let wifi_credentials_quoted = wifi_credentials.map(|(ssid, password, auth_method)| {
-        quote! {
-            datex_embedded::setup::global_initializer::WifiCredentials { ssid: #ssid, password: #password, auth_method: #auth_method }
+        match auth_method {
+            Some(auth_method) => {
+                quote! {
+                    datex_embedded::setup::global_initializer::WifiCredentials { ssid: #ssid.to_string(), password: #password.to_string(), auth_method: Some(#auth_method.to_string()) }
+                }
+            },
+            None => {
+                quote! {
+                    datex_embedded::setup::global_initializer::WifiCredentials { ssid: #ssid.to_string(), password: #password.to_string(), auth_method: None }
+                }
+            }
         }
     });
 
