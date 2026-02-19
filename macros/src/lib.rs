@@ -12,9 +12,9 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
     let config = get_config(&parsed_attributes);
 
     let wifi_credentials = config.as_ref().map(|config| get_wifi_credentials_from_config(config)).flatten();
-    let wifi_credentials_quoted = wifi_credentials.map(|(ssid, password)| {
+    let wifi_credentials_quoted = wifi_credentials.map(|(ssid, password, auth_method)| {
         quote! {
-            datex_embedded::setup::global_initializer::WifiCredentials { ssid: #ssid.to_string(), password: #password.to_string() }
+            datex_embedded::setup::global_initializer::WifiCredentials { ssid: #ssid, password: #password, auth_method: #auth_method }
         }
     });
 
@@ -87,12 +87,13 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
     ).into()
 }
 
-fn get_wifi_credentials_from_config(config: &RuntimeConfig) -> Option<(String, String)> {
+fn get_wifi_credentials_from_config(config: &RuntimeConfig) -> Option<(String, String, Option<String>)> {
     config.env.as_ref().and_then(|env| {
         let ssid = env.get("WIFI_SSID");
         let password = env.get("WIFI_PASSWORD");
+        let auth_method = env.get("WIFI_AUTH_METHOD").cloned();
         if let Some(ssid) = ssid && let Some(password) = password {
-                return Some((ssid.clone(), password.clone()));
+                return Some((ssid.clone(), password.clone(), auth_method));
             }
         None
     })

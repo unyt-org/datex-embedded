@@ -12,7 +12,8 @@ use crate::{setup::{network::init_network, network_time::get_network_time}};
 #[derive(Debug, Clone)]
 pub struct WifiCredentials {
     pub ssid: String,
-    pub password: String
+    pub password: String,
+    pub auth_method: Option<String>
 }
 
 /// The GlobalInitializer can be used to initialize a new DATEX runtime on an embedded target.
