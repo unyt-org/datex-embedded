@@ -55,7 +55,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
             // esp setup
             let config = esp_hal::Config::default().with_cpu_clock(datex_embedded::esp_hal::clock::CpuClock::max());
             let peripherals = esp_hal::init(config);
-            datex_embedded::esp_alloc::heap_allocator!(size: 220 * 1024);
+            datex_embedded::esp_alloc::heap_allocator!(size: 200 * 1024);
             let timg0 = esp_hal::timer::timg::TimerGroup::new(unsafe {peripherals.TIMG0.clone_unchecked()});
             datex_embedded::esp_rtos::start(timg0.timer0);
         }),

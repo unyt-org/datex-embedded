@@ -229,9 +229,9 @@ checksum = "f5f48f1e9b0aad0a4f05d17bdeae0fa20ff798e272a03a6940ca27ad9c5a6ae7"
 
 [[package]]
 name = "bumpalo"
-version = "3.20.1"
+version = "3.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c6f81257d10a0f602a294ae4182251151ff97dbb504ef9afcdda4a64b24d9b4"
+checksum = "5d20789868f4b01b2f2caec9f5c4e0213b41e3e5702a50157d699ae31ced2fcb"
 
 [[package]]
 name = "bytemuck"
@@ -423,7 +423,6 @@ dependencies = [
 [[package]]
 name = "datex-core"
 version = "0.0.8"
-source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#f0eed35c8749ff1b4eab7d68caafffe0d2a9fac9"
 dependencies = [
  "ariadne",
  "async-select",
@@ -480,7 +479,6 @@ dependencies = [
 [[package]]
 name = "datex-crypto-esp32"
 version = "0.0.1"
-source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#f0eed35c8749ff1b4eab7d68caafffe0d2a9fac9"
 dependencies = [
  "datex-crypto-facade",
  "esp-hal",
@@ -491,7 +489,6 @@ dependencies = [
 [[package]]
 name = "datex-crypto-facade"
 version = "0.0.1"
-source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#f0eed35c8749ff1b4eab7d68caafffe0d2a9fac9"
 dependencies = [
  "bs58",
 ]
@@ -499,7 +496,6 @@ dependencies = [
 [[package]]
 name = "datex-crypto-native"
 version = "0.0.1"
-source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#f0eed35c8749ff1b4eab7d68caafffe0d2a9fac9"
 dependencies = [
  "datex-crypto-facade",
  "openssl",
@@ -564,7 +560,6 @@ dependencies = [
 [[package]]
 name = "datex-macros-internal"
 version = "0.0.1"
-source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#f0eed35c8749ff1b4eab7d68caafffe0d2a9fac9"
 dependencies = [
  "proc-macro2",
  "quote",
