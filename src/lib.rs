@@ -14,6 +14,8 @@ pub use datex_embedded_macros::*;
 pub use embassy_executor::Spawner;
 pub use datex_core as core;
 
+pub use esp_backtrace;
+
 /// ESP-specific interfaces
 #[cfg(feature = "esp")]
 pub mod esp;

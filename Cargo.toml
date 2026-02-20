@@ -61,6 +61,7 @@ serde = { version = "1.0.228", default-features = false, features = ["derive", "
 esp-println = "0.16.1"
 futures = { version = "0.3.31", default-features = false, features = ["alloc", "async-await"]}
 sntpc-net-embassy = "0.8.0"
+esp-backtrace = { version = "0.18.1" }
 
 
 [features]
@@ -87,7 +88,7 @@ esp = [
     "dep:esp-bootloader-esp-idf",
     "dep:esp-alloc",
     "dep:esp-radio",
-    "datex-core/target_esp32"
+    "datex-core/target_esp32",
 ]
 
 esp32 = [
@@ -96,6 +97,7 @@ esp32 = [
     "esp-radio/esp32",
     "esp-hal/esp32",
     "esp-rtos/esp32",
+    "esp-backtrace/esp32"
 ]
 
 esp32s3 = [
@@ -104,4 +106,5 @@ esp32s3 = [
     "esp-radio/esp32s3",
     "esp-hal/esp32s3",
     "esp-rtos/esp32s3",
+    "esp-backtrace/esp32s3"
 ]
