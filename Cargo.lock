@@ -550,7 +550,7 @@ dependencies = [
 [[package]]
 name = "datex-macros"
 version = "0.1.4"
-source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#0ab190a5b5050f6d98f72a60159c4a772594904b"
+source = "git+https://github.com/unyt-org/datex?branch=refactor%2Fupdate-loop#506a92a289a9ced767b87bbd42f70535461ad71f"
 dependencies = [
  "datex-core",
  "proc-macro2",
