@@ -82,8 +82,11 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
     quote!(
         // #[panic_handler]
         // fn panic(info: &core::panic::PanicInfo) -> ! {
-        //     // display panic info with logger
         //     log::error!("panic!: {}", info);
+        //
+        //     // unsafe: dump call stack using linker symbols (requires `esp-backtrace`)
+        //     datex_embedded::esp_backtrace::trace!();
+        //
         //     loop {}
         // }
         use datex_embedded::esp_backtrace as _; // install panic handler with backtrace support

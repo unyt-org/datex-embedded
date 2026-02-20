@@ -61,7 +61,7 @@ serde = { version = "1.0.228", default-features = false, features = ["derive", "
 esp-println = "0.16.1"
 futures = { version = "0.3.31", default-features = false, features = ["alloc", "async-await"]}
 sntpc-net-embassy = "0.8.0"
-esp-backtrace = { version = "0.18.1" }
+esp-backtrace = { version = "0.18.1", features = ["println", "panic-handler"] }
 
 
 [features]
