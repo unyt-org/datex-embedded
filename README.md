@@ -47,7 +47,7 @@ async fn main(runtime: Runtime) {
 
 Note that you need to specify a path to a DATEX config file for your endpoint.
 Here is a simple example config file that defines Wifi credentials and a websocket server to connect to:
-```js
+```dx
 {
     endpoint: @mymicrocontroller,
     interfaces: [
@@ -57,11 +57,11 @@ Here is a simple example config file that defines Wifi credentials and a websock
                 address: "wss://example.unyt.land"
             }
         }
-    ],
-    env: [
-        ["wifi_ssid", "MY_WIFI"],
-        ["wifi_password", "MY_PASSWORD"]
-    ]
+    ], 
+    env: {
+        WIFI_SSID: "my-wifi",
+        WIFI_PASSWORD: "123",
+    }
 }
 ```
 
@@ -70,26 +70,37 @@ Here is a simple example config file that defines Wifi credentials and a websock
 To initialize a new runtime instance, you can also use `init_runtime_with_wifi`/`init_runtime_without_wifi`:
 ```rs
 use datex_embedded::esp::init::init_runtime_with_wifi;
-use datex_core::logger::{init_logger};
 
 let spawner: embassy_executor::Spawner = ...;
 let peripherals: esp_hal::peripherals::Peripherals = ...; 
 
-init_logger();
+esp_println::logger::init_logger(log::LevelFilter::Info);
 
-let (runtime, stack) = init_runtime_with_wifi(
+let runner = RuntimeRunner::new(
+    RuntimeConfig {
+        endpoint: Some(Endpoint::new("@myesp")), 
+        interfaces: Some(vec![
+            RuntimeConfigInterface::new(
+                "websocket-client", 
+                WebSocketClientInterfaceSetupData {
+                    address: "wss://example.unyt.land".to_string()
+                }
+            ).unwrap()
+        ])
+    }
+);
+
+let stack = init_runtime_with_wifi(
     spawner,
-    peripherals,
-    WifiCredentials { ssid, password },
-    RuntimeConfig {endpoint: Some(Endpoint::new("@myesp")), interfaces: Some(vec![
-        RuntimeConfigInterface::new(
-            "websocket-client", 
-            WebSocketClientInterfaceSetupData {
-                address: "wss://example.unyt.land".to_string()
-            }
-        ).unwrap()
-    ]), debug: Some(true)}
+    &peripherals,
+    WifiCredentials { ssid, password. auth_method },
+    runtime,
 ).await;
 
-info!("runtime version: {}", runtime.version);
+runner.run(async move |runtime: Runtime| {
+    // the runtime is fully initialized and ready to use
+    info!("runtime version: {}", runtime.version);
+    // ...
+}).await;
+
 ```
