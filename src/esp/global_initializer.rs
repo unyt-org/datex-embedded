@@ -5,6 +5,7 @@ use datex_core::runtime::Runtime;
 use embassy_executor::Spawner;
 use embassy_net::Stack;
 use esp_hal::{peripherals::{Peripherals}, rtc_cntl::Rtc};
+use log::info;
 use crate::{esp::{timestamp_generator::TimestampGenerator}, hal::rng::RngHal, setup::global_initializer::{GlobalInitializer, WifiCredentials}};
 
 pub struct EspGlobalInitializer<'a> {
@@ -51,8 +52,9 @@ impl<'a> GlobalInitializer for EspGlobalInitializer<'a> {
         }
     }
 
-    async fn init_global_context(&self, current_time: u64) {
-        // TODO: set current time?
+    async fn init_global_context(&self, current_time_us: u64) {
+        let rtc = Rtc::new(unsafe {esp_hal::peripherals::Peripherals::steal().LPWR.clone_unchecked()});
+        rtc.set_current_time_us(current_time_us);
     }
 
     #[cfg(feature = "wifi")]

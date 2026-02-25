@@ -94,7 +94,7 @@ pub trait GlobalInitializer: Sized {
         spawner: Spawner,
     ) -> Option<Stack<'static>> {
         
-        let (current_time, maybe_wifi_stack) = match wifi_credentials {
+        let (current_time_us, maybe_wifi_stack) = match wifi_credentials {
             Some(wifi_credentials) => {
                 #[cfg(feature = "wifi")]
                 {
@@ -110,7 +110,7 @@ pub trait GlobalInitializer: Sized {
         };
 
         // initialize global context
-        self.init_global_context(current_time).await;
+        self.init_global_context(current_time_us).await;
         
         self.register_com_interface_factories(
             &maybe_wifi_stack,
