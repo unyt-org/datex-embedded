@@ -2,6 +2,7 @@ use core::net::{IpAddr, SocketAddr};
 use embassy_net::{Stack, dns::DnsQueryType, udp::{PacketMetadata, UdpSocket}};
 use sntpc::{NtpContext, NtpTimestampGenerator, get_time};
 use log::error;
+use sntpc_net_embassy::{UdpSocketWrapper};
 
 const TIMEZONE: jiff::tz::TimeZone = jiff::tz::get!("UTC");
 const NTP_SERVER: &str = "pool.ntp.org";
@@ -31,6 +32,9 @@ pub(crate) async fn get_network_time(stack: Stack<'_>, timestamp_generator: impl
     );
 
     socket.bind(123).unwrap();
+
+    let socket = UdpSocketWrapper::from(socket);
+
 
     let addr: IpAddr = ntp_addrs[0].into();
     let result = get_time(

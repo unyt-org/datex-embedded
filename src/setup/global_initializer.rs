@@ -1,5 +1,8 @@
+use alloc::rc::Rc;
 use alloc::string::String;
-use datex_core::{runtime::{AsyncContext, Runtime, RuntimeConfig}, values::core_values::endpoint::Endpoint};
+use datex_core::{runtime::{Runtime, RuntimeConfig}, values::core_values::endpoint::Endpoint};
+use datex_core::network::com_hub::ComHub;
+use datex_core::runtime::RuntimeRunner;
 use embassy_executor::Spawner;
 use embassy_net::Stack;
 use sntpc::NtpTimestampGenerator;
@@ -9,7 +12,8 @@ use crate::{setup::{network::init_network, network_time::get_network_time}};
 #[derive(Debug, Clone)]
 pub struct WifiCredentials {
     pub ssid: String,
-    pub password: String
+    pub password: String,
+    pub auth_method: Option<String>
 }
 
 /// The GlobalInitializer can be used to initialize a new DATEX runtime on an embedded target.
@@ -18,7 +22,7 @@ pub struct WifiCredentials {
 pub trait GlobalInitializer: Sized {
 
     /// Register all available com interface factories
-    fn register_com_interface_factories(&self, spawner: &Spawner, stack: &Option<Stack<'static>>, runtime: &Runtime);
+    fn register_com_interface_factories(&self, stack: &Option<Stack<'static>>, com_hub: Rc<ComHub>);
 
     /// Initializes the DATEX global context using the provided current time
     async fn init_global_context(&self, current_time: u64);
@@ -52,31 +56,30 @@ pub trait GlobalInitializer: Sized {
     #[cfg(feature = "wifi")]
     async fn init_datex_runtime_with_wifi(
         self,
-        runtime_config: RuntimeConfig,
+        runtime: Runtime,
         wifi_credentials: WifiCredentials,
-        spawner: Spawner, 
-    ) -> (Runtime, Stack<'static>) {
-        let (runtime, maybe_stack) = self.init_datex_runtime(
-            runtime_config,
+        spawner: Spawner,
+    ) -> Stack<'static> {
+        let maybe_stack = self.init_datex_runtime(
+            runtime,
             Some(wifi_credentials),
             spawner
         ).await;
-        (runtime, maybe_stack.unwrap())
+        maybe_stack.unwrap()
     }
 
     /// Initializes a new DATEX runtime instance, running the base initialization before
     /// No Wifi connection is created, so there is no network time sync possible
     async fn init_datex_runtime_without_wifi(
         self,
-        runtime_config: RuntimeConfig,
-        spawner: Spawner, 
-    ) -> Runtime {
-        let (runtime, _) = self.init_datex_runtime(
-            runtime_config,
+        runtime: Runtime,
+        spawner: Spawner,
+    )  {
+        self.init_datex_runtime(
+            runtime,
             None,
             spawner
         ).await;
-        runtime
     }
 
     /// Initializes a new DATEX runtime instance, running the base initialization before
@@ -86,12 +89,12 @@ pub trait GlobalInitializer: Sized {
     /// - The Wifi stack will be returned
     async fn init_datex_runtime(
         &self,
-        mut runtime_config: RuntimeConfig,
+        runtime: Runtime,
         wifi_credentials: Option<WifiCredentials>,
-        spawner: Spawner, 
-    ) -> (Runtime, Option<Stack<'static>>) {
+        spawner: Spawner,
+    ) -> Option<Stack<'static>> {
         
-        let (current_time, maybe_wifi_stack) = match wifi_credentials {
+        let (current_time_us, maybe_wifi_stack) = match wifi_credentials {
             Some(wifi_credentials) => {
                 #[cfg(feature = "wifi")]
                 {
@@ -107,22 +110,14 @@ pub trait GlobalInitializer: Sized {
         };
 
         // initialize global context
-        self.init_global_context(current_time).await;
-
-        let runtime = Runtime::new(
-            runtime_config,
-            AsyncContext { spawner: spawner.clone() }
-        );
-
+        self.init_global_context(current_time_us).await;
+        
         self.register_com_interface_factories(
-            &spawner,
             &maybe_wifi_stack,
-            &runtime,
+            runtime.com_hub()
         );
-
-        runtime.start().await;
-
-        (runtime, maybe_wifi_stack)
+        
+        maybe_wifi_stack
     }
 
 }

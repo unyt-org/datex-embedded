@@ -1,10 +1,12 @@
 use alloc::rc::Rc;
 use alloc::string::ToString;
+use datex_core::network::com_hub::ComHub;
 use datex_core::runtime::Runtime;
 use embassy_executor::Spawner;
 use embassy_net::Stack;
 use esp_hal::{peripherals::{Peripherals}, rtc_cntl::Rtc};
-use crate::{esp::{global_context::init_global_context, timestamp_generator::TimestampGenerator}, hal::rng::RngHal, setup::global_initializer::{GlobalInitializer, WifiCredentials}};
+use log::info;
+use crate::{esp::{timestamp_generator::TimestampGenerator}, hal::rng::RngHal, setup::global_initializer::{GlobalInitializer, WifiCredentials}};
 
 pub struct EspGlobalInitializer<'a> {
     peripherals: &'a Peripherals,
@@ -19,8 +21,40 @@ impl<'a> EspGlobalInitializer<'a> {
 }
 
 impl<'a> GlobalInitializer for EspGlobalInitializer<'a> {
-    async fn init_global_context(&self, current_time: u64) {
-        init_global_context(unsafe {self.peripherals.LPWR.clone_unchecked()}, current_time);
+    fn register_com_interface_factories(&self, stack: &Option<Stack<'static>>, com_hub: Rc<ComHub>) {
+        #[cfg(feature = "websocket-client")]
+        {
+            use crate::interfaces::websocket_client_interface_embedded::{WebSocketClientInterfaceSetupDataEmbedded, WebSocketClientInterfaceEmbeddedGlobalState};
+            if let Some(stack) = stack {
+                use esp_hal::rng::Rng;
+
+                WebSocketClientInterfaceEmbeddedGlobalState::set_global_state(WebSocketClientInterfaceEmbeddedGlobalState {
+                    stack: stack.clone(),
+                    rng: Rc::new(Rng::new())
+                });
+                com_hub.register_async_interface_factory::<WebSocketClientInterfaceSetupDataEmbedded>();
+            }
+           
+        }
+        #[cfg(feature = "tcp-client")]
+        {
+            use crate::interfaces::tcp_client_interface_embedded::{TCPClientInterfaceSetupDataEmbedded, TcpClientInterfaceEmbeddedGlobalState};
+            if let Some(stack) = stack {
+                use esp_hal::rng::Rng;
+
+                TcpClientInterfaceEmbeddedGlobalState::set_global_state(TcpClientInterfaceEmbeddedGlobalState {
+                    stack: stack.clone(),
+                    rng: Rc::new(Rng::new())
+                });
+                com_hub.register_async_interface_factory::<TCPClientInterfaceSetupDataEmbedded>();
+            }
+           
+        }
+    }
+
+    async fn init_global_context(&self, current_time_us: u64) {
+        let rtc = Rtc::new(unsafe {esp_hal::peripherals::Peripherals::steal().LPWR.clone_unchecked()});
+        rtc.set_current_time_us(current_time_us);
     }
 
     #[cfg(feature = "wifi")]
@@ -30,40 +64,5 @@ impl<'a> GlobalInitializer for EspGlobalInitializer<'a> {
 
     fn get_timestamp_generator(&self) -> impl sntpc::NtpTimestampGenerator + Copy {
         TimestampGenerator::new(&self.rtc)
-    }
-    
-    fn register_com_interface_factories(&self, spawner: &Spawner, stack: &Option<Stack<'static>>, runtime: &Runtime) {
-        #[cfg(feature = "websocket-client")]
-        {
-            use crate::interfaces::websocket_client_interface_embedded::{WebSocketClientInterfaceEmbedded, WebSocketClientInterfaceEmbeddedGlobalState};
-            if let Some(stack) = stack {
-                use datex_core::network::com_interfaces::com_interface::ComInterfaceFactory;
-                use esp_hal::rng::Rng;
-
-                WebSocketClientInterfaceEmbedded::set_global_state(WebSocketClientInterfaceEmbeddedGlobalState {
-                    spawner: spawner.clone(),
-                    stack: stack.clone(),
-                    rng: Rc::new(Rng::new())
-                });
-                runtime.com_hub().register_interface_factory("websocket-client".to_string(), WebSocketClientInterfaceEmbedded::factory);
-            }
-           
-        }
-        #[cfg(feature = "tcp-client")]
-        {
-            use crate::interfaces::tcp_client_interface_embedded::{TcpClientInterfaceEmbedded, TcpClientInterfaceEmbeddedGlobalState};
-            if let Some(stack) = stack {
-                use datex_core::network::com_interfaces::com_interface::ComInterfaceFactory;
-                use esp_hal::rng::Rng;
-
-                TcpClientInterfaceEmbedded::set_global_state(TcpClientInterfaceEmbeddedGlobalState {
-                    spawner: spawner.clone(),
-                    stack: stack.clone(),
-                    rng: Rc::new(Rng::new())
-                });
-                runtime.com_hub().register_interface_factory("tcp-client".to_string(), TcpClientInterfaceEmbedded::factory);
-            }
-           
-        }
     }
 }

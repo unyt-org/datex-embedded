@@ -20,51 +20,42 @@ use edge_net::nal::{AddrType, Dns, TcpSplit};
 use alloc::string::String;
 
 use datex_core::{
-    delegate_com_interface_info,
     network::com_interfaces::{
-        com_interface::{ComInterface, ComInterfaceInfo, ComInterfaceSockets},
-        com_interface_properties::{InterfaceDirection, InterfaceProperties},
-        com_interface_socket::{ComInterfaceSocket, ComInterfaceSocketUUID},
-        socket_provider::SingleSocketProvider,
+        com_interface::{ComInterface},
     },
-    set_opener,
     stdlib::sync::Arc,
 };
-use datex_macros::{com_interface, create_opener};
 
-use datex_core::network::com_interfaces::com_interface::{
-    ComInterfaceError, ComInterfaceFactory, ComInterfaceState,
-};
 use log::{error, info};
 use url::Url;
 use alloc::string::ToString;
 use alloc::boxed::Box;
-
+use alloc::vec;
+use core::ops::Deref;
+use datex_core::channel::mpsc::{UnboundedReceiver, UnboundedSender};
+use datex_core::network::com_hub::errors::InterfaceCreateError;
+use datex_core::network::com_hub::managers::interfaces_manager::ComInterfaceAsyncFactoryResult;
+use datex_core::network::com_interfaces::com_interface::{ComInterfaceEvent, ComInterfaceProxy};
+use datex_core::network::com_interfaces::com_interface::error::ComInterfaceError;
+use datex_core::network::com_interfaces::com_interface::factory::{ComInterfaceAsyncFactory, ComInterfaceSyncFactory};
+use datex_core::network::com_interfaces::com_interface::properties::{InterfaceDirection, InterfaceProperties};
 use datex_core::network::com_interfaces::default_com_interfaces::websocket::websocket_common::{
     parse_url, WebSocketClientInterfaceSetupData, WebSocketError,
 };
-
+use datex_core::task::{spawn_with_panic_notify};
+use serde::Deserialize;
 use crate::hal::rng::RngHal;
 
+/// Global state for the embedded WebSocket client interface
+/// Must be set before creating any interfaces
 
 static mut GLOBAL_STATE: Option<WebSocketClientInterfaceEmbeddedGlobalState> = None;
 
 pub struct WebSocketClientInterfaceEmbeddedGlobalState {
-    pub spawner: Spawner,
     pub stack: Stack<'static>,
     pub rng: Rc<dyn RngHal>,
 }
-
-pub struct WebSocketClientInterfaceEmbedded {
-    pub address: Url,
-    pub spawner: Spawner,
-    pub stack: Stack<'static>,
-    pub send_queue: Arc<Mutex<VecDeque<u8>>>,
-    info: ComInterfaceInfo,
-    rng: Rc<dyn RngHal>,
-}
-
-impl WebSocketClientInterfaceEmbedded {
+impl WebSocketClientInterfaceEmbeddedGlobalState {
     pub fn set_global_state(global_state: WebSocketClientInterfaceEmbeddedGlobalState) {
         unsafe {
             GLOBAL_STATE = Some(global_state)
@@ -72,77 +63,72 @@ impl WebSocketClientInterfaceEmbedded {
     }
 }
 
+#[derive(Deserialize)]
+pub struct WebSocketClientInterfaceSetupDataEmbedded(pub WebSocketClientInterfaceSetupData);
+impl Deref for WebSocketClientInterfaceSetupDataEmbedded {
+    type Target = WebSocketClientInterfaceSetupData;
 
-impl SingleSocketProvider for WebSocketClientInterfaceEmbedded {
-    fn provide_sockets(&self) -> Arc<Mutex<ComInterfaceSockets>> {
-        self.get_sockets().clone()
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
 
-#[com_interface]
-impl WebSocketClientInterfaceEmbedded {
-    pub fn new(
-        address: &str,
-        spawner: Spawner,
-        stack: Stack<'static>,
-        rng: Rc<dyn RngHal>,
-    ) -> Result<WebSocketClientInterfaceEmbedded, WebSocketError> {
-        let address =
-            parse_url(address, true).map_err(|_| WebSocketError::InvalidURL)?;
-        let info = ComInterfaceInfo::new();
-        let interface = WebSocketClientInterfaceEmbedded {
-            address,
-            info,
-            spawner,
-            stack,
-            send_queue: Arc::new(Mutex::new(VecDeque::new())),
-            rng
-        };
-        Ok(interface)
-    }
+impl WebSocketClientInterfaceSetupDataEmbedded {
 
-    #[create_opener]
-    async fn open(&mut self) -> Result<(), WebSocketError> {
+    async fn create_interface(
+        self,
+        com_interface_proxy: ComInterfaceProxy
+    ) -> Result<InterfaceProperties, InterfaceCreateError> {
+
+        let global_state = unsafe {GLOBAL_STATE.as_ref()}.ok_or_else(|| {
+            InterfaceCreateError::invalid_setup_data("websocket-client cannot be created via factory, missing global state")
+        })?;
+
+        let url =
+            parse_url(&self.url).map_err(|_| InterfaceCreateError::invalid_setup_data("Invalid WebSocket URL"))?;
+
+
         let connection_data = ConnectionData {
-            host: self.address.host_str().unwrap().to_string(),
-            port: self.address.port().unwrap_or(80),
+            host: url.host_str().unwrap().to_string(),
+            port: url.port().unwrap_or(80),
             ip: {
-                let dns = EmbassyDns::new(self.stack.clone());
-                dns.get_host_by_name(self.address.host_str().unwrap(), AddrType::IPv4).await.unwrap()
+                let dns = EmbassyDns::new(global_state.stack.clone());
+                dns.get_host_by_name(url.host_str().unwrap(), AddrType::IPv4).await.unwrap()
             }
         };
 
         info!("Connecting to WebSocket server at {}:{} (IP: {})", connection_data.host, connection_data.port, connection_data.ip);
 
-        let socket = ComInterfaceSocket::new(
-            self.get_uuid().clone(),
-            InterfaceDirection::InOut,
-            1,
-        );
-        let receive_queue = socket.receive_queue.clone();
-        self.get_sockets()
-            .try_lock()
-            .unwrap()
-            .add_socket(Arc::new(Mutex::new(socket)));
+        let (uuid, sender) = com_interface_proxy
+            .create_and_init_socket(InterfaceDirection::InOut, 1);
 
         info!("Connection upgraded to WS, starting traffic now");
-
         info!("Opening TCP connection to {}:{}", connection_data.ip, connection_data.port);
 
         let connect_result = Arc::new(OnceLock::<Result<(),WebSocketError>>::new());
 
-        self.spawner.spawn(listen(
-            self.stack.clone(),
-            connection_data,
-            receive_queue,
-            self.send_queue.clone(),
-            connect_result.clone(),
-            self.rng.clone(),
-        )).expect("Failed to spawn listen task");
+        spawn_with_panic_notify(
+            &com_interface_proxy.async_context,
+            listen(
+                global_state.stack.clone(),
+                connection_data,
+                com_interface_proxy.event_receiver,
+                sender,
+                connect_result.clone(),
+                global_state.rng.clone(),
+            )
+        );
       
         // await connection
         connect_result.get().await.clone()
+            .map_err(|e| InterfaceCreateError::InterfaceError(ComInterfaceError::connection_error_with_details(e)))?;
+
+        Ok(InterfaceProperties {
+            name: Some(url.to_string()),
+            created_sockets: Some(vec![uuid]),
+            ..Self::get_default_properties()
+        })
     }
 }
 
@@ -200,8 +186,8 @@ async fn connect<'a>(
 async fn listen(
     stack: Stack<'static>,
     connection_data: ConnectionData,
-    receive_queue: Arc<Mutex<VecDeque<u8>>>,
-    send_queue: Arc<Mutex<VecDeque<u8>>>,
+    receiver: UnboundedReceiver<ComInterfaceEvent>,
+    sender: UnboundedSender<Vec<u8>>,
     connect_result: Arc<OnceLock<Result<(),WebSocketError>>>,
     rng: Rc<dyn RngHal>,
 ) {
@@ -218,8 +204,8 @@ async fn listen(
 
         // Run send and receive loops concurrently
         match select(
-            receive_loop(read, receive_queue.clone()),
-            send_loop(write, send_queue.clone(), rng)
+            receive_loop(read, sender),
+            send_loop(write, receiver, rng)
         ).await {
             Either::First(_) => {
                 info!("receive_loop stopped");
@@ -237,47 +223,39 @@ async fn listen(
 
 async fn send_loop<'a>(
     mut socket_write: TcpSocketWrite<'a>,
-    send_queue: Arc<Mutex<VecDeque<u8>>>,
+    mut receiver: UnboundedReceiver<ComInterfaceEvent>,
     rng: Rc<dyn RngHal>,
-) -> Result<!, ()> {
-    loop {
-        let mut block = Vec::new();
+) -> Result<(), ()> {
+    while let Some(event) = receiver.next().await {
 
-        // Wait for data to send
-        loop {
-            {
-                let mut queue = send_queue.try_lock().unwrap();
-                while let Some(byte) = queue.pop_front() {
-                    block.push(byte);
-                }
+        match event {
+            ComInterfaceEvent::SendBlock(block, _) => {
+                let header = FrameHeader {
+                    frame_type: FrameType::Binary(false),
+                    payload_len: block.len() as _,
+                    mask_key: rng.random().into(),
+                };
+
+                header.send(&mut socket_write).await.map_err(|_| ())?;
+                header.send_payload(&mut socket_write, &block.to_bytes()).await.map_err(|_| ())?;
             }
-
-            if !block.is_empty() {
+            ComInterfaceEvent::Destroy => {
+                info!("send_loop received Destroy event, stopping");
                 break;
             }
-
-            // No data yet, yield to allow other tasks to run
-            embassy_futures::yield_now().await;
+            _ => {
+                error!("Unhandled event in send_loop: {:?}", event);
+            }
         }
-
-        let header = FrameHeader {
-            frame_type: FrameType::Binary(false),
-            payload_len: block.len() as _,
-            mask_key: rng.random().into(),
-        };
-
-        header.send(&mut socket_write).await.map_err(|_| ())?;
-        header.send_payload(&mut socket_write, &block).await.map_err(|_| ())?;
-
-        info!("Sent {header} with payload {:?}", &block);
     }
+    Ok(())
 }
 
 async fn receive_loop<'a>(
     mut socket_rc: TcpSocketRead<'a>,
-    receive_queue: Arc<Mutex<VecDeque<u8>>>,
+    mut sender: UnboundedSender<Vec<u8>>,
 ) -> Result<!, ()> {
-    let mut buf = [0_u8; 1024];
+    let mut buf = [0_u8; 256];
 
     loop {
         let header = FrameHeader::recv(&mut socket_rc).await.map_err(|_| ())?;
@@ -292,8 +270,7 @@ async fn receive_loop<'a>(
             }
             FrameType::Binary(_) => {
                 info!("Got {header}, with payload {payload:?}");
-                let mut queue = receive_queue.try_lock().unwrap();
-                queue.extend(payload);
+                sender.start_send(payload.to_vec())?;
             }
             _ => {
                 error!("Unexpected {}", header);
@@ -307,24 +284,17 @@ async fn receive_loop<'a>(
 }
 
 
-impl ComInterfaceFactory<WebSocketClientInterfaceSetupData>
-    for WebSocketClientInterfaceEmbedded
+
+impl ComInterfaceAsyncFactory
+    for WebSocketClientInterfaceSetupDataEmbedded
 {
-    fn create(
-        setup_data: WebSocketClientInterfaceSetupData,
-    ) -> Result<WebSocketClientInterfaceEmbedded, ComInterfaceError> {
-        if let Some(global_state) = unsafe {GLOBAL_STATE.as_ref()} {
-            WebSocketClientInterfaceEmbedded::new(
-                &setup_data.address,
-                global_state.spawner,
-                global_state.stack,
-                global_state.rng.clone()
-            ).map_err(|_| ComInterfaceError::ConnectionError)
-        }
-        else {
-            error!("WebSocketClientInterfaceEmbedded cannot be created via factory, missing global state");
-            Err(ComInterfaceError::InvalidSetupData)
-        }
+    fn create_interface(
+        self,
+        com_interface_proxy: ComInterfaceProxy,
+    ) -> ComInterfaceAsyncFactoryResult {
+        Box::pin(
+            async move { self.create_interface(com_interface_proxy).await },
+        )
     }
 
     fn get_default_properties() -> InterfaceProperties {
@@ -336,35 +306,4 @@ impl ComInterfaceFactory<WebSocketClientInterfaceSetupData>
             ..InterfaceProperties::default()
         }
     }
-}
-
-impl ComInterface for WebSocketClientInterfaceEmbedded {
-    fn send_block<'a>(
-        &'a mut self,
-        block: &'a [u8],
-        _: ComInterfaceSocketUUID,
-    ) -> Pin<Box<dyn Future<Output = bool> + 'a>> {
-        Box::pin(async move {
-            let mut queue = self.send_queue.try_lock().unwrap();
-            queue.extend(block);
-            true
-        })
-    }
-
-    fn init_properties(&self) -> InterfaceProperties {
-        InterfaceProperties {
-            name: Some(self.address.to_string()),
-            ..Self::get_default_properties()
-        }
-    }
-
-    fn handle_close<'a>(
-        &'a mut self,
-    ) -> Pin<Box<dyn Future<Output = bool> + 'a>> {
-        // TODO
-        Box::pin(async move { true })
-    }
-
-    delegate_com_interface_info!();
-    set_opener!(open);
 }

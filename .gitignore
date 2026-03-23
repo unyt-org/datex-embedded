@@ -1,1 +1,4 @@
 /target
+macros/target
+.idea
+.cargo/config.toml

@@ -1,16 +1,20 @@
 #![no_std]
 #![feature(never_type)]
+#![feature(gen_blocks)]
 #![allow(static_mut_refs)]
+#![feature(thread_local)]
 extern crate alloc;
 
 pub mod interfaces;
 pub mod setup;
 pub mod hal;
 
-pub use datex_core_embedded_macros::*;
+pub use datex_embedded_macros::*;
 
 pub use embassy_executor::Spawner;
 pub use datex_core as core;
+
+pub use esp_backtrace;
 
 /// ESP-specific interfaces
 #[cfg(feature = "esp")]

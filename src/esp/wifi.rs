@@ -8,7 +8,7 @@ use embassy_net::{
     Runner, Stack, StackResources, dns::DnsQueryType, udp::{PacketMetadata, UdpSocket}
 };
 use esp_radio::{Controller, wifi::{ClientConfig, ModeConfig, ScanConfig, WifiController, WifiDevice, WifiEvent, WifiStaState}};
-
+use esp_radio::wifi::AuthMethod;
 use crate::setup::global_initializer::WifiCredentials;
 
 // When you are okay with using a nightly compiler it's better to use https://docs.rs/static_cell/2.1.0/static_cell/macro.make_static.html
@@ -50,6 +50,18 @@ pub async fn init_wifi_stack(spawner: &Spawner, peripherals: &Peripherals, crede
     stack
 }
 
+fn parse_auth_method(s: &str) -> Option<AuthMethod> {
+    match s {
+        "None" => Some(AuthMethod::None),
+        "Wep" => Some(AuthMethod::Wep),
+        "Wpa" => Some(AuthMethod::Wpa),
+        "Wpa2Personal" => Some(AuthMethod::Wpa2Personal),
+        "WpaWpa2Personal" => Some(AuthMethod::WpaWpa2Personal),
+        "Wpa2Enterprise" => Some(AuthMethod::Wpa2Enterprise),
+        _ => None,
+    }
+}
+
 
 #[embassy_executor::task]
 async fn connection(mut controller: WifiController<'static>, credentials: WifiCredentials) {
@@ -61,11 +73,27 @@ async fn connection(mut controller: WifiController<'static>, credentials: WifiCr
             Timer::after(Duration::from_millis(5000)).await
         }
         if !matches!(controller.is_started(), Ok(true)) {
-            let client_config = ModeConfig::Client(
-                ClientConfig::default()
+            let mut client_config = ClientConfig::default()
                     .with_ssid(credentials.ssid.clone())
-                    .with_password(credentials.password.clone()),
-            );
+                    .with_password(credentials.password.clone());
+
+            match &credentials.auth_method {
+                Some(val) => {
+                    let auth_method = parse_auth_method(val);
+                    match auth_method {
+                        Some(auth_method) => {
+                            client_config = client_config.with_auth_method(auth_method);
+                        },
+                        None => {
+                            error!("Invalid auth method provided: {val}, defaulting to None");
+                            client_config = client_config.with_auth_method(AuthMethod::None);
+                        }
+                    }
+                }
+                None => {} // default
+            }
+
+            let client_config = ModeConfig::Client(client_config);
             controller.set_config(&client_config).unwrap();
             controller.start_async().await.unwrap();
             info!("Wifi started");

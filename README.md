@@ -1,7 +1,6 @@
-# DATEX Core (Embedded)
+# DATEX (Embedded)
 
-This is an extension crate for the [datex-core crate](https://github.com/unyt-org/datex-core) that provides interfaces and helpers
-for running DATEX on embedded targets.
+This is an extension crate for the [datex core crate](https://github.com/unyt-org/datex) that provides interfaces and helpers for running DATEX on embedded targets.
 
 This crate is nostd-compatible and supports various embedded targets, including:
  * ESP32
@@ -10,7 +9,7 @@ This crate is nostd-compatible and supports various embedded targets, including:
 
 ### Feature Flags
 
-To get started, add this crate to you project with `cargo add datex-core-embedded`. 
+To get started, add this crate to you project with `cargo add datex-embedded`. 
 
 This crate has no default feature flags, so to use it, you probably want to enable additional features:
 
@@ -29,16 +28,16 @@ To build for an ESP32 target, enable the feature flag for your specific target.
 - `esp32s3`
 
 
-### Using the datex_core_embedded::main macro
+### Using the datex_embedded::main macro
 
-The `datex_core_embedded::main` macro provides an easy way to use an async main function with an initialized DATEX runtime:
+The `datex_embedded::main` macro provides an easy way to use an async main function with an initialized DATEX runtime:
 
 ```rs
 #![no_std]
 #![no_main]
 use datex_core::runtime::Runtime;
 
-#[datex_core_embedded::main("../config.dx")]
+#[datex_embedded::main("../config.dx")]
 async fn main(runtime: Runtime) {
     info!("DATEX runtime version: {}", runtime.version);
 
@@ -48,7 +47,7 @@ async fn main(runtime: Runtime) {
 
 Note that you need to specify a path to a DATEX config file for your endpoint.
 Here is a simple example config file that defines Wifi credentials and a websocket server to connect to:
-```js
+```dx
 {
     endpoint: @mymicrocontroller,
     interfaces: [
@@ -58,11 +57,11 @@ Here is a simple example config file that defines Wifi credentials and a websock
                 address: "wss://example.unyt.land"
             }
         }
-    ],
-    env: [
-        ["wifi_ssid", "MY_WIFI"],
-        ["wifi_password", "MY_PASSWORD"]
-    ]
+    ], 
+    env: {
+        WIFI_SSID: "my-wifi",
+        WIFI_PASSWORD: "123",
+    }
 }
 ```
 
@@ -70,27 +69,38 @@ Here is a simple example config file that defines Wifi credentials and a websock
 
 To initialize a new runtime instance, you can also use `init_runtime_with_wifi`/`init_runtime_without_wifi`:
 ```rs
-use datex_core_embedded::esp::init::init_runtime_with_wifi;
-use datex_core::logger::{init_logger};
+use datex_embedded::esp::init::init_runtime_with_wifi;
 
 let spawner: embassy_executor::Spawner = ...;
 let peripherals: esp_hal::peripherals::Peripherals = ...; 
 
-init_logger();
+esp_println::logger::init_logger(log::LevelFilter::Info);
 
-let (runtime, stack) = init_runtime_with_wifi(
+let runner = RuntimeRunner::new(
+    RuntimeConfig {
+        endpoint: Some(Endpoint::new("@myesp")), 
+        interfaces: Some(vec![
+            RuntimeConfigInterface::new(
+                "websocket-client", 
+                WebSocketClientInterfaceSetupData {
+                    address: "wss://example.unyt.land".to_string()
+                }
+            ).unwrap()
+        ])
+    }
+);
+
+let stack = init_runtime_with_wifi(
     spawner,
-    peripherals,
-    WifiCredentials { ssid, password },
-    RuntimeConfig {endpoint: Some(Endpoint::new("@myesp")), interfaces: Some(vec![
-        RuntimeConfigInterface::new(
-            "websocket-client", 
-            WebSocketClientInterfaceSetupData {
-                address: "wss://example.unyt.land".to_string()
-            }
-        ).unwrap()
-    ]), debug: Some(true)}
+    &peripherals,
+    WifiCredentials { ssid, password. auth_method },
+    runtime,
 ).await;
 
-info!("runtime version: {}", runtime.version);
+runner.run(async move |runtime: Runtime| {
+    // the runtime is fully initialized and ready to use
+    info!("runtime version: {}", runtime.version);
+    // ...
+}).await;
+
 ```

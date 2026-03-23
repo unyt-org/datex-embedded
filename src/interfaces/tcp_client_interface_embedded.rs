@@ -5,7 +5,6 @@ use core::str::FromStr;
 use alloc::collections::vec_deque::VecDeque;
 use alloc::rc::Rc;
 use alloc::vec::Vec;
-use datex_core::stdlib::{future::Future, pin::Pin};
 use datex_core::std_sync::Mutex;
 use embassy_executor::Spawner;
 use embassy_futures::select::{Either, select};
@@ -19,52 +18,35 @@ use alloc::string::String;
 use edge_net::nal::io::Write;
 use edge_net::nal::io::Read;
 
-use datex_core::{
-    delegate_com_interface_info,
-    network::com_interfaces::{
-        com_interface::{ComInterface, ComInterfaceInfo, ComInterfaceSockets},
-        com_interface_properties::{InterfaceDirection, InterfaceProperties},
-        com_interface_socket::{ComInterfaceSocket, ComInterfaceSocketUUID},
-        socket_provider::SingleSocketProvider,
-    },
-    set_opener,
-    stdlib::sync::Arc,
-};
-use datex_macros::{com_interface, create_opener};
-
-use datex_core::network::com_interfaces::com_interface::{
-    ComInterfaceError, ComInterfaceFactory, ComInterfaceState,
-};
 use log::{error, info};
 use url::Url;
 use alloc::string::ToString;
 use alloc::boxed::Box;
-
-use datex_core::network::com_interfaces::default_com_interfaces::tcp::tcp_common::{
-    TCPClientInterfaceSetupData, TCPError
-};
-
+use alloc::sync::Arc;
+use alloc::vec;
+use core::ops::Deref;
+use datex_core::channel::mpsc::{create_unbounded_channel, UnboundedReceiver, UnboundedSender};
+use datex_core::derive_setup_data;
+use datex_core::global::dxb_block::DXBBlock;
+use datex_core::network::com_hub::errors::ComInterfaceCreateError;
+use datex_core::network::com_interfaces::com_interface::factory::{ComInterfaceAsyncFactory, ComInterfaceAsyncFactoryResult, ComInterfaceConfiguration, SendCallback, SendFailure, SendSuccess, SocketConfiguration, SocketProperties};
+use datex_core::network::com_interfaces::com_interface::properties::{ComInterfaceProperties, InterfaceDirection};
+use datex_core::network::com_interfaces::default_setup_data::http_common::split_address_into_host_and_port;
+use datex_core::network::com_interfaces::default_setup_data::tcp::tcp_client::TCPClientInterfaceSetupData;
+use edge_net::ws::{FrameHeader, FrameType};
+use futures::channel::oneshot::Sender;
+use serde::Deserialize;
+use static_cell::StaticCell;
 use crate::hal::rng::RngHal;
-
 
 static mut GLOBAL_STATE: Option<TcpClientInterfaceEmbeddedGlobalState> = None;
 
 pub struct TcpClientInterfaceEmbeddedGlobalState {
-    pub spawner: Spawner,
     pub stack: Stack<'static>,
     pub rng: Rc<dyn RngHal>,
 }
 
-pub struct TcpClientInterfaceEmbedded {
-    pub address: Url,
-    pub spawner: Spawner,
-    pub stack: Stack<'static>,
-    pub send_queue: Arc<Mutex<VecDeque<u8>>>,
-    info: ComInterfaceInfo,
-    rng: Rc<dyn RngHal>,
-}
-
-impl TcpClientInterfaceEmbedded {
+impl TcpClientInterfaceEmbeddedGlobalState {
     pub fn set_global_state(global_state: TcpClientInterfaceEmbeddedGlobalState) {
         unsafe {
             GLOBAL_STATE = Some(global_state)
@@ -73,72 +55,101 @@ impl TcpClientInterfaceEmbedded {
 }
 
 
-impl SingleSocketProvider for TcpClientInterfaceEmbedded {
-    fn provide_sockets(&self) -> Arc<Mutex<ComInterfaceSockets>> {
-        self.get_sockets().clone()
-    }
-}
+derive_setup_data!(TCPClientInterfaceSetupDataEmbedded, TCPClientInterfaceSetupData);
 
 
-#[com_interface]
-impl TcpClientInterfaceEmbedded {
-    pub fn new(
-        address: &str,
-        spawner: Spawner,
-        stack: Stack<'static>,
-        rng: Rc<dyn RngHal>,
-    ) -> Result<TcpClientInterfaceEmbedded, TCPError> {
-        let address = Url::from_str(address).map_err(|_| TCPError::InvalidAddress)?;
-        let info = ComInterfaceInfo::new();
-        let interface = TcpClientInterfaceEmbedded {
-            address,
-            info,
-            spawner,
-            stack,
-            send_queue: Arc::new(Mutex::new(VecDeque::new())),
-            rng
-        };
-        Ok(interface)
-    }
+impl TCPClientInterfaceSetupDataEmbedded {
+    async fn create_interface(self) -> Result<ComInterfaceConfiguration, ComInterfaceCreateError> {
 
-    #[create_opener]
-    async fn open(&mut self) -> Result<(), TCPError> {
+        let global_state = unsafe {GLOBAL_STATE.as_ref()}.ok_or_else(|| {
+            ComInterfaceCreateError::invalid_setup_data("websocket-client cannot be created via factory, missing global state")
+        })?;
+
+        let (host, port) = split_address_into_host_and_port(&self.address)
+            .map_err(|e| ComInterfaceCreateError::invalid_setup_data(e))?;
+
         let connection_data = ConnectionData {
-            host: self.address.host_str().unwrap().to_string(),
-            port: self.address.port().unwrap_or(80),
+            host: host.clone(),
+            port,
             ip: {
-                let dns = EmbassyDns::new(self.stack.clone());
-                dns.get_host_by_name(self.address.host_str().unwrap(), AddrType::IPv4).await.unwrap()
+                // if host is already an IP address, parse it directly, otherwise resolve it via DNS
+                if let Ok(ip) = IpAddr::from_str(&host) {
+                    ip
+                } else {
+                    let dns = EmbassyDns::new(global_state.stack.clone());
+                    dns.get_host_by_name(&host, AddrType::IPv4).await.unwrap()
+                }
             }
         };
 
-        info!("Connecting to TCP server at {}:{} (IP: {})", connection_data.host, connection_data.port, connection_data.ip);
 
-        let socket = ComInterfaceSocket::new(
-            self.get_uuid().clone(),
-            InterfaceDirection::InOut,
-            1,
-        );
-        let receive_queue = socket.receive_queue.clone();
-        self.get_sockets()
-            .try_lock()
-            .unwrap()
-            .add_socket(Arc::new(Mutex::new(socket)));
+        Ok(ComInterfaceConfiguration::new_single_socket(
+            ComInterfaceProperties {
+                name: Some(self.address.to_string()),
+                ..Self::get_default_properties()
+            },
+            SocketConfiguration::new_combined(
+                SocketProperties::new(InterfaceDirection::InOut, 1),
+                |mut out_receiver: UnboundedReceiver<(DXBBlock, Sender<Result<(), SendFailure>>)>| {
+                    async gen move {
+                        let buffers = TcpBuffers::<10, 1024, 1024>::new();
+                        let tcp = EmbassyTcp::new(global_state.stack.clone(), &buffers);
 
-        info!("Opening TCP connection to {}:{}", connection_data.ip, connection_data.port);
+                        info!("Connecting to TCP server at {}:{} (IP: {})", connection_data.host, connection_data.port, connection_data.ip);
 
-        let connect_result = Arc::new(OnceLock::<Result<(),TCPError>>::new());
+                        let socket = tcp.connect(SocketAddr::new(connection_data.ip, connection_data.port)).await;
+                        let mut socket = match socket {
+                            Ok(socket) => socket,
+                            Err(_) => {
+                                error!("Failed to connect to TCP server at {}:{}", connection_data.host, connection_data.port);
+                                return yield Err(());
+                            }
+                        };
 
-        self.spawner.spawn(listen(
-            self.stack.clone(),
-            connection_data,
-            receive_queue,
-            self.send_queue.clone(),
-            connect_result.clone(),
-        )).expect("Failed to spawn listen task");
-      
-        // await connection
-        connect_result.get().await.clone()
+                        let (mut read, mut write) = socket.split();
+
+                        let mut buf = [0_u8; 256];
+
+                        loop {
+                            match select(read.read(&mut buf), out_receiver.next()).await {
+                                Either::First(read_result) => {
+                                    match (read_result) {
+                                        Err(e) => {
+                                            error!("Failed to read from TCP socket: {e:?}");
+                                            return yield Err(());
+                                        }
+                                        Ok(size) => {
+                                            // size 0 indicates that the connection was closed by the peer
+                                            if size == 0 {
+                                                info!("TCP connection closed by peer");
+                                                return yield Err(());
+                                            }
+                                            else {
+                                                let data = buf[0..size].to_vec();
+                                                yield Ok(data);
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Either::Second(outgoing) => {
+                                    // write to socket
+                                    if let Some((outgoing, sender)) = outgoing {
+                                        if let Err(e) = write.write(&outgoing.to_bytes()).await {
+                                            error!("Failed to write to TCP socket");
+                                            sender.send(Err(SendFailure(Box::new(outgoing)))).unwrap();
+                                        }
+                                        else {
+                                            sender.send(Ok(())).unwrap();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            )
+        ))
     }
 }
 
@@ -148,153 +159,20 @@ struct ConnectionData {
     ip: IpAddr,
 }
 
-/// Establishes a TCP connection
-async fn connect<'a>(
-    connection_data: ConnectionData,
-    tcp: &'a EmbassyTcp<'a, 10>,
-) -> Result<TcpSocket<'a, 10, 1024, 1024>, TcpError> {
-    tcp.connect(SocketAddr::new(connection_data.ip, connection_data.port)).await
-}
-
-#[embassy_executor::task]
-async fn listen(
-    stack: Stack<'static>,
-    connection_data: ConnectionData,
-    receive_queue: Arc<Mutex<VecDeque<u8>>>,
-    send_queue: Arc<Mutex<VecDeque<u8>>>,
-    connect_result: Arc<OnceLock<Result<(),TCPError>>>,
-) {
-    let buffers = TcpBuffers::<10, 1024, 1024>::default();
-    let tcp = EmbassyTcp::new(stack, &buffers);
-
-    let result = connect(connection_data, &tcp).await;
-
-    if let Ok(mut socket) = result {
-        connect_result.get_or_init(|| Ok(()));
-        let (read, write) = socket.split();
-
-        // Run send and receive loops concurrently
-        match select(
-            receive_loop(read, receive_queue.clone()),
-            send_loop(write, send_queue.clone())
-        ).await {
-            Either::First(_) => {
-                info!("receive_loop stopped");
-            },
-            Either::Second(_) => {
-                info!("send_loop stopped");
-            }
-        }
-        info!("TCP loop stopped");
-    }
-    else {
-        connect_result.get_or_init(|| Err(TCPError::ConnectionError));
-    }
-}
-
-async fn send_loop<'a>(
-    mut socket_write: TcpSocketWrite<'a>,
-    send_queue: Arc<Mutex<VecDeque<u8>>>,
-) -> Result<!, ()> {
-    loop {
-        let mut block = Vec::new();
-
-        // Wait for data to send
-        loop {
-            {
-                let mut queue = send_queue.try_lock().unwrap();
-                while let Some(byte) = queue.pop_front() {
-                    block.push(byte);
-                }
-            }
-
-            if !block.is_empty() {
-                break;
-            }
-
-            // No data yet, yield to allow other tasks to run
-            embassy_futures::yield_now().await;
-        }
-
-        socket_write.write(&block).await.unwrap();
-
-        info!("Sent payload {:?}", &block);
-    }
-}
-
-async fn receive_loop<'a>(
-    mut socket_rc: TcpSocketRead<'a>,
-    receive_queue: Arc<Mutex<VecDeque<u8>>>,
-) -> Result<!, ()> {
-    let mut buf = [0_u8; 1024];
-
-    loop {
-        let size = socket_rc.read(&mut buf).await.unwrap();
-
-        let mut queue = receive_queue.try_lock().unwrap();
-        queue.extend(&buf[0..size]);
-    }
-}
-
-
-impl ComInterfaceFactory<TCPClientInterfaceSetupData>
-    for TcpClientInterfaceEmbedded
+impl ComInterfaceAsyncFactory
+    for TCPClientInterfaceSetupDataEmbedded
 {
-    fn create(
-        setup_data: TCPClientInterfaceSetupData,
-    ) -> Result<TcpClientInterfaceEmbedded, ComInterfaceError> {
-        if let Some(global_state) = unsafe {GLOBAL_STATE.as_ref()} {
-            TcpClientInterfaceEmbedded::new(
-                &setup_data.address,
-                global_state.spawner,
-                global_state.stack,
-                global_state.rng.clone()
-            ).map_err(|_| ComInterfaceError::ConnectionError)
-        }
-        else {
-            error!("TcpClientInterfaceEmbedded cannot be created via factory, missing global state");
-            Err(ComInterfaceError::InvalidSetupData)
-        }
+    fn create_interface(self) -> ComInterfaceAsyncFactoryResult {
+        Box::pin(self.create_interface())
     }
 
-    fn get_default_properties() -> InterfaceProperties {
-        InterfaceProperties {
+    fn get_default_properties() -> ComInterfaceProperties {
+        ComInterfaceProperties {
             interface_type: "tcp-client".to_string(),
             channel: "tcp".to_string(),
-            round_trip_time: Duration::from_millis(40),
+            round_trip_time: Duration::from_millis(20),
             max_bandwidth: 1000,
-            ..InterfaceProperties::default()
+            ..ComInterfaceProperties::default()
         }
     }
-}
-
-impl ComInterface for TcpClientInterfaceEmbedded {
-    fn send_block<'a>(
-        &'a mut self,
-        block: &'a [u8],
-        _: ComInterfaceSocketUUID,
-    ) -> Pin<Box<dyn Future<Output = bool> + 'a>> {
-        Box::pin(async move {
-            let mut queue = self.send_queue.try_lock().unwrap();
-            queue.extend(block);
-            true
-        })
-    }
-
-    fn init_properties(&self) -> InterfaceProperties {
-        InterfaceProperties {
-            name: Some(self.address.to_string()),
-            ..Self::get_default_properties()
-        }
-    }
-
-    fn handle_close<'a>(
-        &'a mut self,
-    ) -> Pin<Box<dyn Future<Output = bool> + 'a>> {
-        // TODO
-        Box::pin(async move { true })
-    }
-
-    delegate_com_interface_info!();
-    set_opener!(open);
 }
