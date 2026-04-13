@@ -7,7 +7,7 @@ use embassy_executor::Spawner;
 use embassy_net::Stack;
 use sntpc::NtpTimestampGenerator;
 
-use crate::{setup::{network::init_network, network_time::get_network_time}};
+use crate::setup::network::init_network;
 
 #[derive(Debug, Clone)]
 pub struct WifiCredentials {
@@ -31,24 +31,6 @@ pub trait GlobalInitializer: Sized {
     async fn init_wifi_stack(&self, spawner: &Spawner, credentials: WifiCredentials) -> Stack<'static>;
 
     fn get_timestamp_generator(&self) -> impl NtpTimestampGenerator + Copy;
-
-    /// Initializes the base components needed fo the runtime
-    /// - network stack (must already be set up, just waiting for initialization)
-    /// - network time
-    /// - global context
-    async fn init_network_stack(
-        &self,
-        stack: Stack<'_>, 
-    ) -> u64 {
-        init_network(&stack).await;
-        
-        // get current time via NTP
-        let timestamp_generator = self.get_timestamp_generator();
-        get_network_time(
-            stack.clone(),        
-            timestamp_generator,
-        ).await.unwrap()
-    }
 
     /// Initializes a new DATEX runtime instance, running the base initialization before
     /// A Wifi connection is created, the current network time is synced
@@ -99,7 +81,7 @@ pub trait GlobalInitializer: Sized {
                 #[cfg(feature = "wifi")]
                 {
                     let wifi_stack = self.init_wifi_stack(&spawner, wifi_credentials).await;
-                    (self.init_network_stack(wifi_stack).await, Some(wifi_stack))
+                    (init_network(&wifi_stack).await, Some(wifi_stack))
                 }
                 #[cfg(not(feature = "wifi"))]
                 {
