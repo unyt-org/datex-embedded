@@ -2,7 +2,7 @@ use embassy_net::Stack;
 use embassy_time::{Duration, Timer};
 use log::info;
 
-pub(crate) async fn init_network(stack: &Stack<'_>) {
+pub(crate) async fn init_network(stack: &Stack<'_>) -> u64 {
     loop {
         if stack.is_link_up() {
             break;
@@ -18,4 +18,5 @@ pub(crate) async fn init_network(stack: &Stack<'_>) {
         }
         Timer::after(Duration::from_millis(500)).await;
     }
+    return 0
 }
