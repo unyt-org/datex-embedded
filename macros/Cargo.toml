@@ -12,3 +12,4 @@ quote = "1"
 proc-macro2 = "1"
 
 datex-core = { version = "0.0.12", default-features = false, features = ["std", "compiler", "tokio_runtime"] }
+datex-macro-utils = { version = "0.0.1" }
