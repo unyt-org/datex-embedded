@@ -4,8 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-datex-core = { git = "https://github.com/unyt-org/datex", branch = "refactor/update-loop", default-features = false }
-datex-macros = { git = "https://github.com/unyt-org/datex", branch = "refactor/update-loop" }
+datex-core = { version = "0.0.12", default-features = false }
 datex-embedded-macros = { path = "./macros" }
 
 log = "0.4.27"
