@@ -65,7 +65,7 @@ fn parse_auth_method(s: &str) -> Option<AuthMethod> {
 
 #[embassy_executor::task]
 async fn connection(mut controller: WifiController<'static>, credentials: WifiCredentials) {
-    info!("Device capabilities: {:?}", controller.capabilities());
+    info!("Connecting with credentials: {:#?}", credentials);
     loop {
         if esp_radio::wifi::sta_state() == WifiStaState::Connected {
             // wait until we're no longer connected
