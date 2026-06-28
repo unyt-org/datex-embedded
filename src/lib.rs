@@ -17,13 +17,13 @@ pub use datex_core as core;
 pub use esp_backtrace;
 
 /// ESP-specific interfaces
-#[cfg(feature = "esp")]
+#[cfg(feature = "esp_shared")]
 pub mod esp;
-#[cfg(feature = "esp")]
+#[cfg(feature = "esp_shared")]
 pub use esp_rtos;
-#[cfg(feature = "esp")]
+#[cfg(feature = "esp_shared")]
 pub use esp_hal;
-#[cfg(feature = "esp")]
+#[cfg(feature = "esp_shared")]
 pub use esp_alloc;
-#[cfg(feature = "esp")]
+#[cfg(feature = "esp_shared")]
 pub use esp_bootloader_esp_idf;

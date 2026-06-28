@@ -62,9 +62,8 @@ futures = { version = "0.3.31", default-features = false, features = ["alloc", "
 sntpc-net-embassy = "0.8.0"
 esp-backtrace = { version = "0.18.1", features = ["println", "panic-handler"] }
 
-
 [features]
-default = ["tcp-client", "esp32s3"]
+default = ["tcp-client"]
 
 
 websocket-client = [
@@ -81,29 +80,42 @@ wifi = [
     "esp-radio/wifi"
 ]
 
-esp = [
+esp_shared = [
     "dep:esp-hal",
     "dep:esp-rtos",
     "dep:esp-bootloader-esp-idf",
     "dep:esp-alloc",
     "dep:esp-radio",
-    "datex-core/target_esp32",
 ]
 
-esp32 = [
-    "esp",
+# Target specific features for ESP32 and ESP32-S3
+
+target_esp32 = [
+    "esp_shared",
     "esp-bootloader-esp-idf/esp32",
     "esp-radio/esp32",
     "esp-hal/esp32",
     "esp-rtos/esp32",
-    "esp-backtrace/esp32"
+    "esp-backtrace/esp32",
+    "datex-core/target_esp32",
 ]
 
-esp32s3 = [
-    "esp",
+target_esp32s3 = [
+    "esp_shared",
     "esp-bootloader-esp-idf/esp32s3",
     "esp-radio/esp32s3",
     "esp-hal/esp32s3",
     "esp-rtos/esp32s3",
-    "esp-backtrace/esp32s3"
+    "esp-backtrace/esp32s3",
+    "datex-core/target_esp32s3",
+]
+
+target_esp32c2 = [
+    "esp_shared",
+    "esp-bootloader-esp-idf/esp32c2",
+    "esp-radio/esp32c2",
+    "esp-hal/esp32c2",
+    "esp-rtos/esp32c2",
+    "esp-backtrace/esp32c2",
+    "datex-core/target_esp32c2",
 ]
