@@ -53,6 +53,7 @@ esp-radio = { version = "0.17.0", optional = true, features = [
   "coex",
   "esp-alloc",
   "log-04",
+  "smoltcp",
   "unstable",
 ] }
 serde = { version = "1.0.228", default-features = false, features = ["derive", "alloc"] }
