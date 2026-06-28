@@ -4,12 +4,10 @@ use core::result::Result;
 use core::str::FromStr;
 use alloc::collections::vec_deque::VecDeque;
 use alloc::rc::Rc;
-use alloc::vec::Vec;
-use datex_core::std_sync::Mutex;
+use datex_core::macros::Datex;
 use embassy_executor::Spawner;
 use embassy_futures::select::{Either, select};
 use embassy_net::{Stack};
-use embassy_sync::once_lock::OnceLock;
 use core::time::Duration;
 use edge_nal_embassy::{Dns as EmbassyDns, TcpBuffers, TcpError, TcpSocket, TcpSocketRead, TcpSocketWrite};
 use edge_nal_embassy::Tcp as EmbassyTcp;
@@ -26,7 +24,6 @@ use alloc::sync::Arc;
 use alloc::vec;
 use core::ops::Deref;
 use datex_core::channel::mpsc::{create_unbounded_channel, UnboundedReceiver, UnboundedSender};
-use datex_core::derive_setup_data;
 use datex_core::global::dxb_block::DXBBlock;
 use datex_core::network::com_hub::errors::ComInterfaceCreateError;
 use datex_core::network::com_interfaces::com_interface::factory::{ComInterfaceAsyncFactory, ComInterfaceAsyncFactoryResult, ComInterfaceConfiguration, SendCallback, SendFailure, SendSuccess, SocketConfiguration, SocketProperties};
@@ -54,9 +51,15 @@ impl TcpClientInterfaceEmbeddedGlobalState {
     }
 }
 
+#[derive(Datex)]
+pub struct TCPClientInterfaceSetupDataEmbedded(pub TCPClientInterfaceSetupData);
+impl Deref for TCPClientInterfaceSetupDataEmbedded {
+    type Target = TCPClientInterfaceSetupData;
 
-derive_setup_data!(TCPClientInterfaceSetupDataEmbedded, TCPClientInterfaceSetupData);
-
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl TCPClientInterfaceSetupDataEmbedded {
     async fn create_interface(self) -> Result<ComInterfaceConfiguration, ComInterfaceCreateError> {
@@ -170,7 +173,7 @@ impl ComInterfaceAsyncFactory
         ComInterfaceProperties {
             interface_type: "tcp-client".to_string(),
             channel: "tcp".to_string(),
-            round_trip_time: Duration::from_millis(20),
+            round_trip_time: 20,
             max_bandwidth: 1000,
             ..ComInterfaceProperties::default()
         }
