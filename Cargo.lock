@@ -540,7 +540,7 @@ dependencies = [
 
 [[package]]
 name = "datex-embedded-macros"
-version = "0.1.1"
+version = "0.0.1"
 dependencies = [
  "datex-core",
  "datex-macro-utils",

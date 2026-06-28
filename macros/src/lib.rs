@@ -1,9 +1,9 @@
 use proc_macro::{TokenStream};
 use proc_macro2::TokenStream as TokenStream2;
-use syn::{FnArg, ItemFn, Pat, Signature, Token, parse::{Parse, ParseStream}, parse_macro_input, parse_quote, Stmt};
+use syn::{FnArg, ItemFn, Pat, Signature, parse_macro_input, parse_quote};
 use quote::quote;
 use datex_core::{runtime::RuntimeConfig};
-use datex_macro_utils::entrypoint::{datex_main_impl, datex_main_impl_with_config, get_config, DatexMainInput, ParsedAttributes};
+use datex_macro_utils::entrypoint::{datex_main_impl_with_config, get_config, DatexMainInput, ParsedAttributes};
 
 #[proc_macro_attribute]
 pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
