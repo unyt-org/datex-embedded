@@ -27,27 +27,24 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     });
 
-    let has_wifi_stack = wifi_credentials_quoted.is_some();
-    let context_init_code = get_context_init_code(&original_function.sig, has_wifi_stack);
+    let context_init_code = get_context_init_code(&original_function.sig);
 
-    let runtime_setup_quoted = match wifi_credentials_quoted {
-        Some(wifi_credentials_quoted) => quote!{
-            // runtime setup
-            let stack = datex_embedded::esp::init::init_runtime_with_wifi(
-                spawner,
-                &peripherals,
-                #wifi_credentials_quoted,
-                runtime
-            ).await;
-        },
-        None => quote!{
-            // runtime setup
-            datex_embedded::esp::init::init_runtime_without_wifi(
-                spawner,
-                &peripherals,
-                runtime
-            ).await;
-        }
+    let wifi_credentials_quoted_option = match wifi_credentials_quoted {
+        Some(wifi_credentials_quoted) => quote!{Some(#wifi_credentials_quoted)},
+        None => quote!{None}
+    };
+
+    let runtime_setup_quoted = quote!{
+        // runtime setup
+        let esp32_context = datex_embedded::esp::init::init_runtime(
+            spawner,
+            datex_embedded::esp::init::Esp32RuntimeInitPeripherals {
+                wifi: peripherals.WIFI,
+                lwpr: peripherals.LPWR,
+            },
+            #wifi_credentials_quoted_option,
+            runtime
+        ).await;
     };
 
     let datex_main = datex_main_impl_with_config(DatexMainInput {
@@ -65,8 +62,9 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
             let config = esp_hal::Config::default().with_cpu_clock(datex_embedded::esp_hal::clock::CpuClock::max());
             let peripherals = esp_hal::init(config);
             datex_embedded::esp_alloc::heap_allocator!(size: 200 * 1024);
-            let timg0 = esp_hal::timer::timg::TimerGroup::new(unsafe {peripherals.TIMG0.clone_unchecked()});
-            datex_embedded::esp_rtos::start(timg0.timer0);
+            let timg0 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
+            let sw_int = esp_hal::interrupt::software::SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
+            datex_embedded::esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
         }),
         init: Some(runtime_setup_quoted),
         pre_body: Some(context_init_code),
@@ -113,7 +111,7 @@ fn get_wifi_credentials_from_config(config: &RuntimeConfig) -> Option<(String, S
     })
 }
 
-fn get_context_init_code(sig: &Signature, has_stack: bool) -> TokenStream2 {
+fn get_context_init_code(sig: &Signature) -> TokenStream2 {
     // extract context param
     let context_param = sig.inputs.get(1);
     let context_ident = match context_param {
@@ -127,24 +125,8 @@ fn get_context_init_code(sig: &Signature, has_stack: bool) -> TokenStream2 {
     // generate init code for runtime + context
     match context_ident {
         Some(context_ident) => {
-            let context_init_code = match has_stack {
-                true => quote!{
-                    datex_embedded::esp::context::Context {
-                        peripherals,
-                        stack: Some(stack),
-                        spawner,
-                    }
-                },
-                false => quote!{
-                    datex_embedded::esp::context::Context {
-                        peripherals,
-                        stack: None,
-                        spawner,
-                    }
-                }
-            };
             quote! {
-                let #context_ident = #context_init_code;
+                let #context_ident = esp32_context;
             }
         },
         None => quote! {}
