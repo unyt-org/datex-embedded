@@ -1,5 +1,6 @@
 use alloc::rc::Rc;
 use alloc::string::String;
+use core::fmt::Debug;
 use datex_core::{runtime::{Runtime, RuntimeConfig}, values::core_values::endpoint::Endpoint};
 use datex_core::network::com_hub::ComHub;
 use embassy_executor::Spawner;
@@ -7,11 +8,17 @@ use embassy_net::Stack;
 use sntpc::NtpTimestampGenerator;
 
 use crate::{setup::{network::init_network, network_time::get_network_time}};
-use crate::esp::context::AccesiblePeripherals;
 
 pub struct CommonContext {
     pub spawner: Spawner,
     pub stack: Option<Stack<'static>>,
+}
+
+impl Debug for CommonContext {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("CommonContext")
+            .finish()
+    }
 }
 
 #[derive(Debug, Clone)]
