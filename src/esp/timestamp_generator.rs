@@ -1,4 +1,4 @@
-use esp_hal::{rtc_cntl::Rtc};
+use esp_hal::rtc_cntl::Rtc;
 use sntpc::NtpTimestampGenerator;
 
 #[derive(Clone, Copy)]
@@ -9,7 +9,10 @@ pub struct TimestampGenerator<'a> {
 
 impl<'a> TimestampGenerator<'a> {
     pub fn new(rtc: &'a Rtc<'a>) -> TimestampGenerator<'a> {
-        TimestampGenerator { rtc, current_time_us: 0 }
+        TimestampGenerator {
+            rtc,
+            current_time_us: 0,
+        }
     }
 }
 

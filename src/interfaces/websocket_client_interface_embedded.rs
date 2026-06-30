@@ -1,70 +1,87 @@
-use core::net::{IpAddr, SocketAddr};
-use core::prelude::rust_2024::*;
-use core::result::Result;
-use alloc::collections::vec_deque::VecDeque;
-use alloc::rc::Rc;
-use alloc::vec::Vec;
-use datex_core::stdlib::{future::Future, pin::Pin};
-use datex_core::std_sync::Mutex;
-use edge_net::http::io::client::Connection;
-use edge_net::ws::{FrameHeader, FrameType};
+use alloc::{
+    collections::vec_deque::VecDeque, rc::Rc, string::String, vec::Vec,
+};
+use core::{
+    net::{IpAddr, SocketAddr},
+    prelude::rust_2024::*,
+    result::Result,
+    time::Duration,
+};
+use datex_core::{
+    std_sync::Mutex,
+    stdlib::{future::Future, pin::Pin},
+};
+use edge_http::ws::{
+    MAX_BASE64_KEY_LEN, MAX_BASE64_KEY_RESPONSE_LEN, NONCE_LEN,
+};
+use edge_nal_embassy::{
+    Dns as EmbassyDns, Tcp as EmbassyTcp, TcpBuffers, TcpSocket, TcpSocketRead,
+    TcpSocketWrite,
+};
+use edge_net::{
+    http::io::client::Connection,
+    nal::{AddrType, Dns, TcpSplit},
+    ws::{FrameHeader, FrameType},
+};
 use embassy_executor::Spawner;
 use embassy_futures::select::{Either, select};
-use embassy_net::{Stack};
+use embassy_net::Stack;
 use embassy_sync::once_lock::OnceLock;
-use core::time::Duration;
-use edge_nal_embassy::{Dns as EmbassyDns, TcpBuffers, TcpSocket, TcpSocketRead, TcpSocketWrite};
-use edge_nal_embassy::Tcp as EmbassyTcp;
-use edge_http::ws::{MAX_BASE64_KEY_LEN, MAX_BASE64_KEY_RESPONSE_LEN, NONCE_LEN};
-use edge_net::nal::{AddrType, Dns, TcpSplit};
-use alloc::string::String;
 
 use datex_core::{
-    network::com_interfaces::{
-        com_interface::{ComInterface},
-    },
-    stdlib::sync::Arc,
+    network::com_interfaces::com_interface::ComInterface, stdlib::sync::Arc,
 };
 
-use log::{error, info};
-use url::Url;
-use alloc::string::ToString;
-use alloc::boxed::Box;
-use alloc::vec;
-use core::ops::Deref;
-use datex_core::channel::mpsc::{UnboundedReceiver, UnboundedSender};
-use datex_core::network::com_hub::errors::InterfaceCreateError;
-use datex_core::network::com_hub::managers::interfaces_manager::ComInterfaceAsyncFactoryResult;
-use datex_core::network::com_interfaces::com_interface::{ComInterfaceEvent, ComInterfaceProxy};
-use datex_core::network::com_interfaces::com_interface::error::ComInterfaceError;
-use datex_core::network::com_interfaces::com_interface::factory::{ComInterfaceAsyncFactory, ComInterfaceSyncFactory};
-use datex_core::network::com_interfaces::com_interface::properties::{InterfaceDirection, InterfaceProperties};
-use datex_core::network::com_interfaces::default_com_interfaces::websocket::websocket_common::{
-    parse_url, WebSocketClientInterfaceSetupData, WebSocketError,
-};
-use datex_core::task::{spawn_with_panic_notify};
-use serde::Deserialize;
 use crate::hal::rng::RngHal;
+use alloc::{boxed::Box, string::ToString, vec};
+use core::ops::Deref;
+use datex_core::{
+    channel::mpsc::{UnboundedReceiver, UnboundedSender},
+    network::{
+        com_hub::{
+            errors::InterfaceCreateError,
+            managers::interfaces_manager::ComInterfaceAsyncFactoryResult,
+        },
+        com_interfaces::{
+            com_interface::{
+                ComInterfaceEvent, ComInterfaceProxy,
+                error::ComInterfaceError,
+                factory::{ComInterfaceAsyncFactory, ComInterfaceSyncFactory},
+                properties::{InterfaceDirection, InterfaceProperties},
+            },
+            default_com_interfaces::websocket::websocket_common::{
+                WebSocketClientInterfaceSetupData, WebSocketError, parse_url,
+            },
+        },
+    },
+    task::spawn_with_panic_notify,
+};
+use log::{error, info};
+use serde::Deserialize;
+use url::Url;
 
 /// Global state for the embedded WebSocket client interface
 /// Must be set before creating any interfaces
 
-static mut GLOBAL_STATE: Option<WebSocketClientInterfaceEmbeddedGlobalState> = None;
+static mut GLOBAL_STATE: Option<WebSocketClientInterfaceEmbeddedGlobalState> =
+    None;
 
 pub struct WebSocketClientInterfaceEmbeddedGlobalState {
     pub stack: Stack<'static>,
     pub rng: Rc<dyn RngHal>,
 }
 impl WebSocketClientInterfaceEmbeddedGlobalState {
-    pub fn set_global_state(global_state: WebSocketClientInterfaceEmbeddedGlobalState) {
-        unsafe {
-            GLOBAL_STATE = Some(global_state)
-        }
+    pub fn set_global_state(
+        global_state: WebSocketClientInterfaceEmbeddedGlobalState,
+    ) {
+        unsafe { GLOBAL_STATE = Some(global_state) }
     }
 }
 
 #[derive(Deserialize)]
-pub struct WebSocketClientInterfaceSetupDataEmbedded(pub WebSocketClientInterfaceSetupData);
+pub struct WebSocketClientInterfaceSetupDataEmbedded(
+    pub WebSocketClientInterfaceSetupData,
+);
 impl Deref for WebSocketClientInterfaceSetupDataEmbedded {
     type Target = WebSocketClientInterfaceSetupData;
 
@@ -73,40 +90,46 @@ impl Deref for WebSocketClientInterfaceSetupDataEmbedded {
     }
 }
 
-
 impl WebSocketClientInterfaceSetupDataEmbedded {
-
     async fn create_interface(
         self,
-        com_interface_proxy: ComInterfaceProxy
+        com_interface_proxy: ComInterfaceProxy,
     ) -> Result<InterfaceProperties, InterfaceCreateError> {
-
         let global_state = unsafe {GLOBAL_STATE.as_ref()}.ok_or_else(|| {
             InterfaceCreateError::invalid_setup_data("websocket-client cannot be created via factory, missing global state")
         })?;
 
-        let url =
-            parse_url(&self.url).map_err(|_| InterfaceCreateError::invalid_setup_data("Invalid WebSocket URL"))?;
-
+        let url = parse_url(&self.url).map_err(|_| {
+            InterfaceCreateError::invalid_setup_data("Invalid WebSocket URL")
+        })?;
 
         let connection_data = ConnectionData {
             host: url.host_str().unwrap().to_string(),
             port: url.port().unwrap_or(80),
             ip: {
                 let dns = EmbassyDns::new(global_state.stack.clone());
-                dns.get_host_by_name(url.host_str().unwrap(), AddrType::IPv4).await.unwrap()
-            }
+                dns.get_host_by_name(url.host_str().unwrap(), AddrType::IPv4)
+                    .await
+                    .unwrap()
+            },
         };
 
-        info!("Connecting to WebSocket server at {}:{} (IP: {})", connection_data.host, connection_data.port, connection_data.ip);
+        info!(
+            "Connecting to WebSocket server at {}:{} (IP: {})",
+            connection_data.host, connection_data.port, connection_data.ip
+        );
 
         let (uuid, sender) = com_interface_proxy
             .create_and_init_socket(InterfaceDirection::InOut, 1);
 
         info!("Connection upgraded to WS, starting traffic now");
-        info!("Opening TCP connection to {}:{}", connection_data.ip, connection_data.port);
+        info!(
+            "Opening TCP connection to {}:{}",
+            connection_data.ip, connection_data.port
+        );
 
-        let connect_result = Arc::new(OnceLock::<Result<(),WebSocketError>>::new());
+        let connect_result =
+            Arc::new(OnceLock::<Result<(), WebSocketError>>::new());
 
         spawn_with_panic_notify(
             &com_interface_proxy.async_context,
@@ -117,12 +140,15 @@ impl WebSocketClientInterfaceSetupDataEmbedded {
                 sender,
                 connect_result.clone(),
                 global_state.rng.clone(),
-            )
+            ),
         );
-      
+
         // await connection
-        connect_result.get().await.clone()
-            .map_err(|e| InterfaceCreateError::InterfaceError(ComInterfaceError::connection_error_with_details(e)))?;
+        connect_result.get().await.clone().map_err(|e| {
+            InterfaceCreateError::InterfaceError(
+                ComInterfaceError::connection_error_with_details(e),
+            )
+        })?;
 
         Ok(InterfaceProperties {
             name: Some(url.to_string()),
@@ -138,7 +164,7 @@ struct ConnectionData {
     ip: IpAddr,
 }
 
- /// Establishes a TCP connection and performs the WebSocket upgrade handshake
+/// Establishes a TCP connection and performs the WebSocket upgrade handshake
 /// Returns the established TcpSocket
 async fn connect<'a>(
     connection_data: ConnectionData,
@@ -146,8 +172,11 @@ async fn connect<'a>(
     tcp: &'a EmbassyTcp<'a, 10>,
     rng: Rc<dyn RngHal>,
 ) -> Result<TcpSocket<'a, 10, 1024, 1024>, ()> {
-
-    let mut conn: Connection<_> = Connection::new(buf, tcp, SocketAddr::new(connection_data.ip, connection_data.port));
+    let mut conn: Connection<_> = Connection::new(
+        buf,
+        tcp,
+        SocketAddr::new(connection_data.ip, connection_data.port),
+    );
 
     let mut nonce = [0_u8; NONCE_LEN];
     rng.fill(&mut nonce);
@@ -156,8 +185,16 @@ async fn connect<'a>(
 
     info!("Initiating WS upgrade request");
 
-    conn.initiate_ws_upgrade_request(Some(&connection_data.host), Some(&connection_data.host), "/", None, &nonce, &mut buf)
-        .await.map_err(|_| ())?;
+    conn.initiate_ws_upgrade_request(
+        Some(&connection_data.host),
+        Some(&connection_data.host),
+        "/",
+        None,
+        &nonce,
+        &mut buf,
+    )
+    .await
+    .map_err(|_| ())?;
 
     info!("Waiting for WS upgrade response");
 
@@ -188,7 +225,7 @@ async fn listen(
     connection_data: ConnectionData,
     receiver: UnboundedReceiver<ComInterfaceEvent>,
     sender: UnboundedSender<Vec<u8>>,
-    connect_result: Arc<OnceLock<Result<(),WebSocketError>>>,
+    connect_result: Arc<OnceLock<Result<(), WebSocketError>>>,
     rng: Rc<dyn RngHal>,
 ) {
     let buffers = TcpBuffers::<10, 1024, 1024>::default();
@@ -196,7 +233,8 @@ async fn listen(
 
     let mut buf = Box::new([0_u8; 8192]);
 
-    let result = connect(connection_data, buf.as_mut(), &tcp, rng.clone()).await;
+    let result =
+        connect(connection_data, buf.as_mut(), &tcp, rng.clone()).await;
 
     if let Ok(mut socket) = result {
         connect_result.get_or_init(|| Ok(()));
@@ -205,18 +243,19 @@ async fn listen(
         // Run send and receive loops concurrently
         match select(
             receive_loop(read, sender),
-            send_loop(write, receiver, rng)
-        ).await {
+            send_loop(write, receiver, rng),
+        )
+        .await
+        {
             Either::First(_) => {
                 info!("receive_loop stopped");
-            },
+            }
             Either::Second(_) => {
                 info!("send_loop stopped");
             }
         }
         info!("Websocket loop stopped");
-    }
-    else {
+    } else {
         connect_result.get_or_init(|| Err(WebSocketError::ConnectionError));
     }
 }
@@ -227,7 +266,6 @@ async fn send_loop<'a>(
     rng: Rc<dyn RngHal>,
 ) -> Result<(), ()> {
     while let Some(event) = receiver.next().await {
-
         match event {
             ComInterfaceEvent::SendBlock(block, _) => {
                 let header = FrameHeader {
@@ -237,7 +275,10 @@ async fn send_loop<'a>(
                 };
 
                 header.send(&mut socket_write).await.map_err(|_| ())?;
-                header.send_payload(&mut socket_write, &block.to_bytes()).await.map_err(|_| ())?;
+                header
+                    .send_payload(&mut socket_write, &block.to_bytes())
+                    .await
+                    .map_err(|_| ())?;
             }
             ComInterfaceEvent::Destroy => {
                 info!("send_loop received Destroy event, stopping");
@@ -259,7 +300,10 @@ async fn receive_loop<'a>(
 
     loop {
         let header = FrameHeader::recv(&mut socket_rc).await.map_err(|_| ())?;
-        let payload = header.recv_payload(&mut socket_rc, buf.as_mut()).await.map_err(|_| ())?;
+        let payload = header
+            .recv_payload(&mut socket_rc, buf.as_mut())
+            .await
+            .map_err(|_| ())?;
 
         match header.frame_type {
             FrameType::Text(_) => {
@@ -283,11 +327,7 @@ async fn receive_loop<'a>(
     }
 }
 
-
-
-impl ComInterfaceAsyncFactory
-    for WebSocketClientInterfaceSetupDataEmbedded
-{
+impl ComInterfaceAsyncFactory for WebSocketClientInterfaceSetupDataEmbedded {
     fn create_interface(
         self,
         com_interface_proxy: ComInterfaceProxy,

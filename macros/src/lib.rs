@@ -1,9 +1,11 @@
-use proc_macro::{TokenStream};
+use datex_core::runtime::RuntimeConfig;
+use datex_macro_utils::entrypoint::{
+    DatexMainInput, ParsedAttributes, datex_main_impl_with_config, get_config,
+};
+use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use syn::{FnArg, ItemFn, Pat, Signature, parse_macro_input, parse_quote};
 use quote::quote;
-use datex_core::{runtime::RuntimeConfig};
-use datex_macro_utils::entrypoint::{datex_main_impl_with_config, get_config, DatexMainInput, ParsedAttributes};
+use syn::{FnArg, ItemFn, Pat, Signature, parse_macro_input, parse_quote};
 
 #[proc_macro_attribute]
 pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -11,7 +13,10 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
     let original_function = parse_macro_input!(item as ItemFn);
     let config = get_config(&parsed_attributes);
 
-    let wifi_credentials = config.as_ref().map(|config| get_wifi_credentials_from_config(config)).flatten();
+    let wifi_credentials = config
+        .as_ref()
+        .map(|config| get_wifi_credentials_from_config(config))
+        .flatten();
     let wifi_credentials_quoted = wifi_credentials.map(|(ssid, password, auth_method)| {
         match auth_method {
             Some(auth_method) => {
@@ -30,11 +35,13 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
     let context_init_code = get_context_init_code(&original_function.sig);
 
     let wifi_credentials_quoted_option = match wifi_credentials_quoted {
-        Some(wifi_credentials_quoted) => quote!{Some(#wifi_credentials_quoted)},
-        None => quote!{None}
+        Some(wifi_credentials_quoted) => {
+            quote! {Some(#wifi_credentials_quoted)}
+        }
+        None => quote! {None},
     };
 
-    let runtime_setup_quoted = quote!{
+    let runtime_setup_quoted = quote! {
         // runtime setup
         let esp32_context = datex_embedded::esp::init::init_runtime(
             spawner,
@@ -47,35 +54,38 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
         ).await;
     };
 
-    let datex_main = datex_main_impl_with_config(DatexMainInput {
-        parsed_attributes,
-        func: original_function,
-        datex_core_namespace: "datex_embedded::core",
-        setup: Some(quote!{
-            extern crate alloc;
-            use alloc::string::ToString;
-            use alloc::vec;
-        
-            esp_println::logger::init_logger(log::LevelFilter::Info);
-        
-            // esp setup
-            let config = esp_hal::Config::default().with_cpu_clock(datex_embedded::esp_hal::clock::CpuClock::max());
-            let peripherals = esp_hal::init(config);
-            datex_embedded::esp_alloc::heap_allocator!(size: 128 * 1024); // TODO: more heap? (does not work on esp32 base model)
-            let timg0 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
-            let sw_int = esp_hal::interrupt::software::SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
-            datex_embedded::esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
-        }),
-        init: Some(runtime_setup_quoted),
-        pre_body: Some(context_init_code),
-        additional_attributes: vec![parse_quote! {#[datex_embedded::esp_rtos::main]}],
-        custom_main_inputs: vec![
-            parse_quote! {
+    let datex_main = datex_main_impl_with_config(
+        DatexMainInput {
+            parsed_attributes,
+            func: original_function,
+            datex_core_namespace: "datex_embedded::core",
+            setup: Some(quote! {
+                extern crate alloc;
+                use alloc::string::ToString;
+                use alloc::vec;
+
+                esp_println::logger::init_logger(log::LevelFilter::Info);
+
+                // esp setup
+                let config = esp_hal::Config::default().with_cpu_clock(datex_embedded::esp_hal::clock::CpuClock::max());
+                let peripherals = esp_hal::init(config);
+                datex_embedded::esp_alloc::heap_allocator!(size: 128 * 1024); // TODO: more heap? (does not work on esp32 base model)
+                let timg0 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
+                let sw_int = esp_hal::interrupt::software::SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
+                datex_embedded::esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
+            }),
+            init: Some(runtime_setup_quoted),
+            pre_body: Some(context_init_code),
+            additional_attributes: vec![
+                parse_quote! {#[datex_embedded::esp_rtos::main]},
+            ],
+            custom_main_inputs: vec![parse_quote! {
                 spawner: datex_embedded::Spawner
-            }
-        ],
-        enforce_main_name: true,
-    }, config);
+            }],
+            enforce_main_name: true,
+        },
+        config,
+    );
 
     quote!(
         // #[panic_handler]
@@ -96,17 +106,22 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
 
         // main
         #datex_main
-    ).into()
+    )
+    .into()
 }
 
-fn get_wifi_credentials_from_config(config: &RuntimeConfig) -> Option<(String, String, Option<String>)> {
+fn get_wifi_credentials_from_config(
+    config: &RuntimeConfig,
+) -> Option<(String, String, Option<String>)> {
     config.env.as_ref().and_then(|env| {
         let ssid = env.get("WIFI_SSID");
         let password = env.get("WIFI_PASSWORD");
         let auth_method = env.get("WIFI_AUTH_METHOD").cloned();
-        if let Some(ssid) = ssid && let Some(password) = password {
-                return Some((ssid.clone(), password.clone(), auth_method));
-            }
+        if let Some(ssid) = ssid
+            && let Some(password) = password
+        {
+            return Some((ssid.clone(), password.clone(), auth_method));
+        }
         None
     })
 }
@@ -128,7 +143,7 @@ fn get_context_init_code(sig: &Signature) -> TokenStream2 {
             quote! {
                 let #context_ident = esp32_context;
             }
-        },
-        None => quote! {}
+        }
+        None => quote! {},
     }
 }

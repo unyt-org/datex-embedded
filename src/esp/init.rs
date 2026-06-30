@@ -1,11 +1,16 @@
-use datex_core::runtime::{Runtime};
+use crate::{
+    esp::{
+        context::{AccesiblePeripherals, Esp32Context},
+        global_initializer::{EspSetupInitializer, EspWifiInitializer},
+    },
+    setup::global_initializer::{GlobalInitializer, WifiCredentials},
+};
+use datex_core::runtime::Runtime;
 use embassy_executor::Spawner;
-use esp_hal::peripherals::{self, Peripherals};
-use esp_hal::rtc_cntl::Rtc;
-use crate::{setup::global_initializer::{GlobalInitializer, WifiCredentials}};
-use crate::esp::context::{Esp32Context, AccesiblePeripherals};
-use crate::esp::global_initializer::{EspSetupInitializer, EspWifiInitializer};
-
+use esp_hal::{
+    peripherals::{self},
+    rtc_cntl::Rtc,
+};
 
 pub struct Esp32RuntimeInitPeripherals {
     pub wifi: peripherals::WIFI<'static>,
@@ -30,12 +35,11 @@ pub async fn init_runtime(
         EspSetupInitializer {
             rtc: Rtc::new(peripherals.lwpr),
         },
-        spawner.clone()
-    ).await;
+        spawner,
+    )
+    .await;
     Esp32Context {
-        partial_peripherals: AccesiblePeripherals {
-            wifi: None
-        },
+        partial_peripherals: AccesiblePeripherals { wifi: None },
         common: common_context,
     }
 }

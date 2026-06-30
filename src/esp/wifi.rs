@@ -1,22 +1,19 @@
-use alloc::{string::String};
-use datex_core::task::sleep;
-use embassy_time::{Duration, Timer};
-use log::{error, info};
-use embassy_executor::Spawner;
-use esp_hal::{peripherals, rng::Rng};
-use embassy_net::{
-    Runner, Stack, StackResources, dns::DnsQueryType, udp::{PacketMetadata, UdpSocket}
-};
-use embassy_net::driver::LinkState;
-use esp_radio::wifi::{WifiController};
-use esp_radio::wifi::{AuthenticationMethod, Config, ControllerConfig, Interface};
-use esp_radio::wifi::sta::StationConfig;
 use crate::setup::global_initializer::WifiCredentials;
+use embassy_executor::Spawner;
+use embassy_net::{Runner, Stack, StackResources};
+use embassy_time::{Duration, Timer};
+use esp_hal::{peripherals, rng::Rng};
+use esp_radio::wifi::{
+    AuthenticationMethod, Config, ControllerConfig, Interface, WifiController,
+    sta::StationConfig,
+};
+use log::{error, info};
 
 // When you are okay with using a nightly compiler it's better to use https://docs.rs/static_cell/2.1.0/static_cell/macro.make_static.html
 macro_rules! mk_static {
     ($t:ty,$val:expr) => {{
-        static STATIC_CELL: static_cell::StaticCell<$t> = static_cell::StaticCell::new();
+        static STATIC_CELL: static_cell::StaticCell<$t> =
+            static_cell::StaticCell::new();
         #[deny(unused_attributes)]
         let x = STATIC_CELL.uninit().write(($val));
         x
@@ -24,32 +21,36 @@ macro_rules! mk_static {
 }
 
 /**
-   let mut client_config = ClientConfig::default()
-                    .with_ssid(credentials.ssid.clone())
-                    .with_password(credentials.password.clone());
+  let mut client_config = ClientConfig::default()
+                   .with_ssid(credentials.ssid.clone())
+                   .with_password(credentials.password.clone());
 
-            match &credentials.auth_method {
-                Some(val) => {
-                    let auth_method = parse_auth_method(val);
-                    match auth_method {
-                        Some(auth_method) => {
-                            client_config = client_config.with_auth_method(auth_method);
-                        },
-                        None => {
-                            error!("Invalid auth method provided: {val}, defaulting to None");
-                            client_config = client_config.with_auth_method(AuthMethod::None);
-                        }
-                    }
-                }
-                None => {} // default
-            }
+           match &credentials.auth_method {
+               Some(val) => {
+                   let auth_method = parse_auth_method(val);
+                   match auth_method {
+                       Some(auth_method) => {
+                           client_config = client_config.with_auth_method(auth_method);
+                       },
+                       None => {
+                           error!("Invalid auth method provided: {val}, defaulting to None");
+                           client_config = client_config.with_auth_method(AuthMethod::None);
+                       }
+                   }
+               }
+               None => {} // default
+           }
 
-            let client_config = ModeConfig::Client(client_config);
-            controller.set_config(&client_config).unwrap();
- */
+           let client_config = ModeConfig::Client(client_config);
+           controller.set_config(&client_config).unwrap();
+*/
 
 /// Connects to Wifi with the provided credentials and spawns the network tasks
-pub async fn init_wifi_stack(spawner: &Spawner, wifi_peripheral: peripherals::WIFI<'static>, credentials: WifiCredentials) -> Stack<'static> {
+pub async fn init_wifi_stack(
+    spawner: &Spawner,
+    wifi_peripheral: peripherals::WIFI<'static>,
+    credentials: WifiCredentials,
+) -> Stack<'static> {
     let station_config = Config::Station(
         StationConfig::default()
             .with_ssid(credentials.ssid.clone())
@@ -70,7 +71,7 @@ pub async fn init_wifi_stack(spawner: &Spawner, wifi_peripheral: peripherals::WI
         wifi_peripheral,
         ControllerConfig::default().with_initial_config(station_config),
     )
-        .unwrap();
+    .unwrap();
     info!("Wifi configured and started!");
 
     let wifi_interface = interfaces.station;
@@ -105,7 +106,6 @@ fn parse_auth_method(s: &str) -> Option<AuthenticationMethod> {
         _ => None,
     }
 }
-
 
 #[embassy_executor::task]
 async fn connection(mut controller: WifiController<'static>) {
