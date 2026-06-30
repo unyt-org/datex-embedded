@@ -4,7 +4,7 @@ version = "0.1.1"
 edition = "2024"
 
 [dependencies]
-datex-core = { version = "0.0.12", path = "../datex/crates/datex-core", default-features = false } # FIXME move to 0.0.12 and remove path
+datex-core = { version = "0.0.12", git = "https://github.com/unyt-org/datex", branch = "feat/pointer-sync", default-features = false } # FIXME move to 0.0.12 and remove path
 datex-embedded-macros = { path = "./macros", version = "0.0.1" }
 
 log = "0.4.27"
