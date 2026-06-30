@@ -16,6 +16,20 @@ pub use datex_core as core;
 
 pub use esp_backtrace;
 
+#[cfg(not(any(
+    feature = "target_esp32",
+    feature = "target_esp32s3",
+    feature = "target_esp32c2",
+)))]
+compile_error!("Select exactly one target feature: target_esp32, target_esp32s3, or target_esp32c2");
+
+#[cfg(any(
+    all(feature = "target_esp32", feature = "target_esp32s3"),
+    all(feature = "target_esp32", feature = "target_esp32c2"),
+    all(feature = "target_esp32s3", feature = "target_esp32c2"),
+))]
+compile_error!("Only one target feature may be enabled at a time");
+
 /// ESP-specific interfaces
 #[cfg(feature = "esp_shared")]
 pub mod esp;
