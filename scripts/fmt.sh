@@ -12,11 +12,5 @@ cargo +esp clippy \
   --target xtensa-esp32s3-none-elf \
   --allow-dirty
 
-cargo clippy \
-  --workspace \
-  --exclude datex-embedded \
-  --fix \
-  --allow-dirty
-
 cargo fmt --all
 git commit -a -m "fmt"
