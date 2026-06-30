@@ -64,7 +64,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
                 use alloc::string::ToString;
                 use alloc::vec;
 
-                esp_println::logger::init_logger(log::LevelFilter::Info);
+                //esp_println::logger::init_logger(log::LevelFilter::Info);
 
                 // esp setup
                 let config = esp_hal::Config::default().with_cpu_clock(datex_embedded::esp_hal::clock::CpuClock::max());
