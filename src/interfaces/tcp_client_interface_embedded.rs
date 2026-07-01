@@ -103,7 +103,7 @@ impl TCPClientInterfaceSetupDataEmbedded {
                     Sender<Result<(), SendFailure>>,
                 )>| {
                     async gen move {
-                        let buffers = TcpBuffers::<10, 1024, 1024>::new();
+                        let buffers = TcpBuffers::<1, 1024, 1024>::new();
                         let tcp = EmbassyTcp::new(global_state.stack, &buffers);
 
                         info!(
