@@ -438,6 +438,7 @@ dependencies = [
 [[package]]
 name = "datex-core"
 version = "0.0.12"
+source = "git+https://github.com/unyt-org/datex?branch=feat%2Fpointer-sync#873b2f3b646c0d26e8a6c7e097ce5db2c9435f57"
 dependencies = [
  "ariadne",
  "async-select",
@@ -494,6 +495,7 @@ dependencies = [
 [[package]]
 name = "datex-crypto-esp32"
 version = "0.0.3"
+source = "git+https://github.com/unyt-org/datex?branch=feat%2Fpointer-sync#873b2f3b646c0d26e8a6c7e097ce5db2c9435f57"
 dependencies = [
  "datex-crypto-facade",
  "esp-hal",
@@ -504,6 +506,7 @@ dependencies = [
 [[package]]
 name = "datex-crypto-facade"
 version = "0.0.2"
+source = "git+https://github.com/unyt-org/datex?branch=feat%2Fpointer-sync#873b2f3b646c0d26e8a6c7e097ce5db2c9435f57"
 dependencies = [
  "bs58",
 ]
@@ -511,6 +514,7 @@ dependencies = [
 [[package]]
 name = "datex-crypto-native"
 version = "0.0.2"
+source = "git+https://github.com/unyt-org/datex?branch=feat%2Fpointer-sync#873b2f3b646c0d26e8a6c7e097ce5db2c9435f57"
 dependencies = [
  "datex-crypto-facade",
  "openssl",
@@ -566,6 +570,7 @@ dependencies = [
 [[package]]
 name = "datex-macro-utils"
 version = "0.0.1"
+source = "git+https://github.com/unyt-org/datex?branch=feat%2Fpointer-sync#873b2f3b646c0d26e8a6c7e097ce5db2c9435f57"
 dependencies = [
  "datex-core",
  "proc-macro2",
@@ -576,6 +581,7 @@ dependencies = [
 [[package]]
 name = "datex-macros-internal"
 version = "0.0.2"
+source = "git+https://github.com/unyt-org/datex?branch=feat%2Fpointer-sync#873b2f3b646c0d26e8a6c7e097ce5db2c9435f57"
 dependencies = [
  "pathdiff",
  "proc-macro-crate",
