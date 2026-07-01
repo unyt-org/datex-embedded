@@ -555,6 +555,7 @@ dependencies = [
 name = "datex-embedded-macros"
 version = "0.0.1"
 dependencies = [
+ "cfg-if",
  "datex-core",
  "datex-macro-utils",
  "proc-macro2",
