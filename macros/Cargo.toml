@@ -12,7 +12,7 @@ syn = { version = "2", features = ["full"] }
 quote = "1"
 proc-macro2 = "1"
 
-datex-core = { git = "https://github.com/unyt-org/datex", version = "0.0.11", branch = "feat/pointer-sync" }       # FIXME move to { version = "0.0.11", default-features = false, features = ["std", "compiler", "tokio_runtime"] } # FIXME move to 0.0.12
+datex-core = { git = "https://github.com/unyt-org/datex", version = "0.0.12", branch = "feat/pointer-sync" }       # FIXME move to { version = "0.0.11", default-features = false, features = ["std", "compiler", "tokio_runtime"] } # FIXME move to 0.0.12
 datex-macro-utils = { git = "https://github.com/unyt-org/datex", version = "0.0.1", branch = "feat/pointer-sync" } # FIXME move to { version = "0.0.1" }
 
 [features]
