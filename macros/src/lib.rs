@@ -9,7 +9,7 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{FnArg, ItemFn, Pat, Signature, parse_macro_input, parse_quote};
 
-const MAX_HEAP_KIB: u8 = cfg_select! {
+const MAX_HEAP_KIB: usize = cfg_select! {
     feature  = "target_esp32" => 80,
     feature  = "target_esp32s3" => 220,
     feature  = "target_esp32c2" => 220,
@@ -78,7 +78,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
                 // esp setup
                 let config = esp_hal::Config::default().with_cpu_clock(datex_embedded::esp_hal::clock::CpuClock::max());
                 let peripherals = esp_hal::init(config);
-                datex_embedded::esp_alloc::heap_allocator!(size: MAX_HEAP_KIB * 1024); // TODO: more heap? (does not work on esp32 base model)
+                datex_embedded::esp_alloc::heap_allocator!(size: #MAX_HEAP_KIB * 1024); // TODO: more heap? (does not work on esp32 base model)
                 let timg0 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
                 let sw_int = esp_hal::interrupt::software::SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
                 datex_embedded::esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
