@@ -458,7 +458,8 @@ dependencies = [
 [[package]]
 name = "datex-core"
 version = "0.0.12"
-source = "git+https://github.com/unyt-org/datex?branch=feat%2Fpointer-sync#381d4d4c15f09e7f98477d56c3ec085aec794bc2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "881cd35d4c800494480935b3b969aaadacccfd2fff3afede8c5e1d018cf783d0"
 dependencies = [
  "ariadne",
  "async-select",
@@ -500,7 +501,7 @@ dependencies = [
  "ringmap",
  "serde",
  "serde-big-array",
- "serde-value",
+ "serde-val",
  "serde_json",
  "serde_repr",
  "serde_with",
@@ -515,7 +516,8 @@ dependencies = [
 [[package]]
 name = "datex-crypto-esp32"
 version = "0.0.3"
-source = "git+https://github.com/unyt-org/datex?branch=feat%2Fpointer-sync#381d4d4c15f09e7f98477d56c3ec085aec794bc2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "63077b2a9925ccedec7b7232d60ee211a1a8686faf804dc66261768bd25ff5d2"
 dependencies = [
  "datex-crypto-facade",
  "esp-hal",
@@ -526,7 +528,8 @@ dependencies = [
 [[package]]
 name = "datex-crypto-facade"
 version = "0.0.3"
-source = "git+https://github.com/unyt-org/datex?branch=feat%2Fpointer-sync#381d4d4c15f09e7f98477d56c3ec085aec794bc2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4139e03ec405b07919a6eea76461459f86bef9972502998c67d4326550444e4"
 dependencies = [
  "bs58",
 ]
@@ -534,7 +537,8 @@ dependencies = [
 [[package]]
 name = "datex-crypto-native"
 version = "0.0.3"
-source = "git+https://github.com/unyt-org/datex?branch=feat%2Fpointer-sync#381d4d4c15f09e7f98477d56c3ec085aec794bc2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e6712d9a9a6473522ee6cbe3116b945c0cfd7b7b718dcb97a6a316c1c791c9b"
 dependencies = [
  "datex-crypto-facade",
  "openssl",
@@ -590,7 +594,8 @@ dependencies = [
 [[package]]
 name = "datex-macro-utils"
 version = "0.0.1"
-source = "git+https://github.com/unyt-org/datex?branch=feat%2Fpointer-sync#381d4d4c15f09e7f98477d56c3ec085aec794bc2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7577e48f1ae2a3f6f322542006bfffa2c26a619407a07a3de6bf9d940a886702"
 dependencies = [
  "datex-core",
  "proc-macro2",
@@ -601,7 +606,8 @@ dependencies = [
 [[package]]
 name = "datex-macros-internal"
 version = "0.0.2"
-source = "git+https://github.com/unyt-org/datex?branch=feat%2Fpointer-sync#381d4d4c15f09e7f98477d56c3ec085aec794bc2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2af9a6c6d89345ed94485fa403766e1fa26337c66938f33daa56dbba1f6bc1eb"
 dependencies = [
  "pathdiff",
  "proc-macro-crate",
@@ -2929,9 +2935,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde-value"
-version = "0.8.0"
-source = "git+https://github.com/unyt-org/serde-value#7d80bf185183ae5793746bbd1ea80c079b3522fd"
+name = "serde-val"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8075daef7fd08d39b83bf3606feab616391269df779fae7172f5558b3b220d10"
 dependencies = [
  "ordered-float",
  "serde",
