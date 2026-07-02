@@ -13,7 +13,7 @@ const MAX_HEAP_KIB: usize = cfg_select! {
     feature  = "target_esp32" => 80,
     feature  = "target_esp32s3" => 220,
     feature  = "target_esp32c2" => 220,
-    _ => compile_error!("Unsupported target for datex_embedded::main macro.")
+    _ => 0
 };
 
 #[proc_macro_attribute]

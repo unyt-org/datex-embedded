@@ -5,7 +5,9 @@ edition = "2024"
 
 
 [dependencies]
-datex-core = { version = "0.0.12", default-features = false }                    # , git = "https://github.com/unyt-org/datex", branch = "feat/pointer-sync"
+datex-core = { version = "0.0.12", default-features = false, features = [
+	"target_esp_shared",
+] } # , git = "https://github.com/unyt-org/datex", branch = "feat/pointer-sync"
 datex-embedded-macros = { path = "../datex-embedded-macros", version = "0.0.1" }
 
 log = "0.4.27"
@@ -63,25 +65,28 @@ serde = { version = "1.0.228", default-features = false, features = [
 	"derive",
 	"alloc",
 ] }
-esp-println = "0.17.0"
+esp-println = { version = "0.17.0", optional = true }
 futures = { version = "0.3.31", default-features = false, features = [
 	"alloc",
 	"async-await",
 ] }
 sntpc-net-embassy = "0.10.0"
-esp-backtrace = { version = "0.19.0", features = ["println", "panic-handler"] }
+esp-backtrace = { version = "0.19.0", features = [
+	"println",
+	"panic-handler",
+], optional = true }
 
 [features]
-default = ["tcp-client"]
-
+default = []
 
 websocket-client = ["dep:url", "wifi"]
-
 tcp-client = ["dep:url", "wifi"]
-
 wifi = ["esp-radio/wifi"]
 
 esp_shared = [
+	"wifi",
+	"dep:esp-backtrace",
+	"dep:esp-println",
 	"dep:esp-hal",
 	"dep:esp-rtos",
 	"dep:esp-bootloader-esp-idf",
