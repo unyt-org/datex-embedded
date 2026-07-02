@@ -2,7 +2,8 @@
 name = "datex-embedded"
 version = "0.0.1"
 edition = "2024"
-
+license-file = "../../LICENSE"
+description = "Embedded support for datex-core"
 
 [dependencies]
 datex-core = { version = "0.0.12", default-features = false, features = [
