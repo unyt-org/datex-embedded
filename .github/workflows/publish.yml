@@ -27,14 +27,29 @@ jobs:
           cargo install espup --locked
           espup install
 
+      - name: Check ESP toolchain
+        run: |
+          . "$HOME/export-esp.sh"
+          cargo +esp -vV
+          rustc +esp --print target-list | grep xtensa-esp32s3-none-elf
+
       - name: Dry-run publish workspace
         run: |
           . "$HOME/export-esp.sh"
-          cargo +esp publish --workspace --dry-run -v --features target_esp32s3
+          cargo +esp publish \
+            --workspace \
+            --dry-run \
+            --features target_esp32s3 \
+            --target xtensa-esp32s3-none-elf \
+            -Zbuild-std=core,alloc
 
       - name: Publish workspace
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           . "$HOME/export-esp.sh"
-          cargo +esp publish --workspace -v --features target_esp32s3
+          cargo +esp publish \
+            --workspace \
+            --features target_esp32s3 \
+            --target xtensa-esp32s3-none-elf \
+            -Zbuild-std=core,alloc
