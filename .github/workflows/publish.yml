@@ -1,22 +1,40 @@
 name: Publish crates
+
 on:
   release:
     types: [published]
+
 jobs:
   publish:
     runs-on: ubuntu-latest
     name: Publish
+
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install libudev-dev and pkg-config
+      - name: Install system dependencies
         run: |
-          sudo apt update
-          sudo apt install -y libudev-dev pkg-config
+          sudo apt-get update
+          sudo apt-get install -y gcc build-essential curl libudev-dev pkg-config
 
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: nightly
-      - uses: katyo/publish-crates@v2
-        with:
-          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          components: rust-src
+
+      - name: Install ESP Rust toolchain
+        run: |
+          cargo install espup --locked
+          espup install
+
+      - name: Dry-run publish workspace
+        run: |
+          . "$HOME/export-esp.sh"
+          cargo +esp publish --workspace --dry-run -v --features target_esp32s3
+
+      - name: Publish workspace
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          . "$HOME/export-esp.sh"
+          cargo +esp publish --workspace -v --features target_esp32s3
