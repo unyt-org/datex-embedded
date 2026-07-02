@@ -5,8 +5,8 @@ edition = "2024"
 
 
 [dependencies]
-datex-core = { version = "0.0.12", default-features = false }     # , git = "https://github.com/unyt-org/datex", branch = "feat/pointer-sync"
-datex-embedded-macros = { path = "../macros", version = "0.0.1" }
+datex-core = { version = "0.0.12", default-features = false }                    # , git = "https://github.com/unyt-org/datex", branch = "feat/pointer-sync"
+datex-embedded-macros = { path = "../datex-embedded-macros", version = "0.0.1" }
 
 log = "0.4.27"
 embassy-net = { version = "0.9.1", default-features = false, features = [
