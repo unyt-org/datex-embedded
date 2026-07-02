@@ -1,0 +1,125 @@
+[package]
+name = "datex-embedded"
+version = "0.0.1"
+edition = "2024"
+
+
+[dependencies]
+datex-core = { version = "0.0.12", default-features = false }     # , git = "https://github.com/unyt-org/datex", branch = "feat/pointer-sync"
+datex-embedded-macros = { path = "../macros", version = "0.0.1" }
+
+log = "0.4.27"
+embassy-net = { version = "0.9.1", default-features = false, features = [
+	"dhcpv4",
+	"log",
+	"medium-ethernet",
+	"tcp",
+	"udp",
+	"dns",
+	"proto-ipv4",
+	# note: ipv6 does currently lead to compiler error
+] }
+embedded-io = "0.7.1"
+embedded-io-async = { version = "0.7.0", features = ["alloc"] }
+embassy-executor = { version = "0.10.0", features = ["log"] }
+embassy-time = { version = "0.5.0", features = ["log"] }
+edge-net = { version = "0.14.0", features = ["io"] }
+edge-nal-embassy = { version = "0.9.0", default-features = false, features = [
+	"dns",
+	"tcp",
+	"proto-ipv4",
+] }
+edge-http = "0.8.0"
+embassy-sync = "0.8.0"
+embassy-futures = "0.1.2"
+static_cell = "2.1.1"
+jiff = { version = "0.2.10", default-features = false, features = ["static"] }
+sntpc = { version = "0.10.1", default-features = false }
+
+# websocket dependencies
+url = { version = "2.5.7", default-features = false, optional = true }
+
+# esp dependencies
+esp-hal = { version = "1.1.0", optional = true, features = [
+	"log-04",
+	"unstable",
+] }
+esp-rtos = { version = "0.3.0", optional = true, features = [
+	"embassy",
+	"esp-alloc",
+	"esp-radio",
+	"log-04",
+] }
+esp-bootloader-esp-idf = { version = "0.5.0", optional = true }
+esp-alloc = { version = "0.10.0", optional = true }
+esp-radio = { version = "0.18.0", optional = true, features = [
+	"ble",
+	"coex",
+	"esp-alloc",
+	"log-04",
+	"unstable",
+] }
+serde = { version = "1.0.228", default-features = false, features = [
+	"derive",
+	"alloc",
+] }
+esp-println = "0.17.0"
+futures = { version = "0.3.31", default-features = false, features = [
+	"alloc",
+	"async-await",
+] }
+sntpc-net-embassy = "0.10.0"
+esp-backtrace = { version = "0.19.0", features = ["println", "panic-handler"] }
+
+[features]
+default = ["tcp-client"]
+
+
+websocket-client = ["dep:url", "wifi"]
+
+tcp-client = ["dep:url", "wifi"]
+
+wifi = ["esp-radio/wifi"]
+
+esp_shared = [
+	"dep:esp-hal",
+	"dep:esp-rtos",
+	"dep:esp-bootloader-esp-idf",
+	"dep:esp-alloc",
+	"dep:esp-radio",
+]
+
+# Target specific features for ESP32 and ESP32-S3
+
+target_esp32 = [
+	"esp_shared",
+	"esp-bootloader-esp-idf/esp32",
+	"esp-radio/esp32",
+	"esp-hal/esp32",
+	"esp-rtos/esp32",
+	"esp-backtrace/esp32",
+	"datex-core/target_esp32",
+	"datex-embedded-macros/target_esp32",
+]
+
+target_esp32s3 = [
+	"esp_shared",
+	"esp-bootloader-esp-idf/esp32s3",
+	"esp-radio/esp32s3",
+	"esp-hal/esp32s3",
+	"esp-rtos/esp32s3",
+	"esp-backtrace/esp32s3",
+	"datex-core/target_esp32s3",
+	"datex-embedded-macros/target_esp32s3",
+]
+
+target_esp32c2 = [
+	"esp_shared",
+	"esp-bootloader-esp-idf/esp32c2",
+	"esp-radio/esp32c2",
+	"esp-hal/esp32c2",
+	"esp-rtos/esp32c2",
+	"esp-backtrace/esp32c2",
+	"datex-core/target_esp32c2",
+	"datex-embedded-macros/target_esp32c2",
+]
