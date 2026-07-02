@@ -16,7 +16,7 @@ This crate has no default feature flags, so to use it, you probably want to enab
 - `wifi`: When you enable this feature, you get helper functions for all supported targets to initialize a runtime with a Wifi connection.
   This feature is required and automatically enabled by features like `websocket-client`, that need a network connection.
 - `debug`: This flag enables the `debug` flag for the DATEX core crate, providing some additional debug functionalities,
-- `websocket-client`: This flag enables the `WebSocketClientInterfaceEmbedded` com interface implementation for the DATEX runtime. When using an initialization function like `init_runtime_with_wifi`, the com interface will automatically be registered and can be used.
+- `websocket-client`: This flag enables the `WebSocketClientInterfaceEmbedded` com interface implementation for the DATEX runtime. When using an initialization function like `init_runtime`, the com interface will automatically be registered and can be used.
 - `esp`: This flag must be enabled when building for an ESP32 target. It is automatically enabled if a more specific ESP32 target feature (e.g  `esp32s3`) is activated.
 
 ## Guide for ESP32 targets
@@ -67,9 +67,9 @@ Here is a simple example config file that defines Wifi credentials and a websock
 
 ### Manual instantiation
 
-To initialize a new runtime instance, you can also use `init_runtime_with_wifi`/`init_runtime_without_wifi`:
+To initialize a new runtime instance, you can also use `init_runtime`:
 ```rs
-use datex_embedded::esp::init::init_runtime_with_wifi;
+use datex_embedded::esp::init::init_runtime;
 
 let spawner: embassy_executor::Spawner = ...;
 let peripherals: esp_hal::peripherals::Peripherals = ...; 
@@ -90,10 +90,10 @@ let runner = RuntimeRunner::new(
     }
 );
 
-let stack = init_runtime_with_wifi(
+let context = init_runtime(
     spawner,
     &peripherals,
-    WifiCredentials { ssid, password. auth_method },
+    Some(WifiCredentials { ssid, password. auth_method }),
     runtime,
 ).await;
 
@@ -104,3 +104,19 @@ runner.run(async move |runtime: Runtime| {
 }).await;
 
 ```
+
+
+## Contributing
+
+**We welcome every contribution!**<br> Please take a look at the
+[DATEX contribution guidelines](https://github.com/unyt-org/datex/blob/main/CONTRIBUTING.md) and the unyt.org
+[contribution guidlines](https://github.com/unyt-org/.github/blob/main/CONTRIBUTING.md).
+
+[Twitter badge]: https://img.shields.io/twitter/follow/unytorg.svg?style=social&label=Follow
+[Twitter link]: https://twitter.com/intent/follow?screen_name=unytorg
+[Discord badge]: https://img.shields.io/discord/928247036770390016?logo=discord&style=social
+[Discord link]: https://unyt.org/discord
+
+---
+
+<sub>&copy; unyt 2026 • [unyt.org](https://unyt.org)</sub>

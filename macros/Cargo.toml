@@ -1,15 +1,21 @@
 [package]
 name = "datex-embedded-macros"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2024"
 
 [lib]
 proc-macro = true
 
 [dependencies]
+cfg-if = "1.0.4"
 syn = { version = "2", features = ["full"] }
 quote = "1"
 proc-macro2 = "1"
 
-datex-core = { version = "0.0.12", default-features = false, features = ["std", "compiler", "tokio_runtime"] }
-datex-macro-utils = { version = "0.0.1" }
+datex-core = { version = "0.0.12" }       # git = "https://github.com/unyt-org/datex", 
+datex-macro-utils = { version = "0.0.1" } # git = "https://github.com/unyt-org/datex", 
+
+[features]
+target_esp32 = []
+target_esp32s3 = []
+target_esp32c2 = []

@@ -1,9 +1,7 @@
-use esp_hal::rng::Rng;
-
+pub mod context;
+pub mod global_initializer;
+pub mod init;
+pub mod rng;
+pub mod timestamp_generator;
 #[cfg(feature = "wifi")]
 pub mod wifi;
-pub mod timestamp_generator;
-pub mod global_initializer;
-pub mod rng;
-pub mod init;
-pub mod context;

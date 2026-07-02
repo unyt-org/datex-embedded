@@ -1,0 +1,16 @@
+[target.xtensa-esp32s3-none-elf]
+runner = "espflash flash --monitor --chip esp32"
+
+[build]
+rustflags = [
+  "-C", "link-arg=-nostartfiles",
+]
+
+target = "xtensa-esp32s3-none-elf"
+
+[unstable]
+build-std = ["alloc", "core"]
+
+[patch.crates-io]
+datex-core = { path = "../datex/crates/datex-core" }
+datex-macro-utils = { path = "../datex/crates/datex-macro-utils" }
