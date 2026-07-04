@@ -9,7 +9,7 @@ description = "Embedded support for datex-core"
 datex-core = { version = "0.0.12", default-features = false, features = [
 	"target_esp_shared",
 ] } # , git = "https://github.com/unyt-org/datex", branch = "feat/pointer-sync"
-datex-embedded-macros = { path = "../datex-embedded-macros", version = "0.0.1" }
+datex-embedded-macros = { path = "../datex-embedded-macros", version = "0.0.2" }
 
 log = "0.4.27"
 embassy-net = { version = "0.9.1", default-features = false, features = [
