@@ -14,10 +14,10 @@ syn = { version = "2", features = ["full"] }
 quote = "1"
 proc-macro2 = "1"
 
-datex-core = { version = "0.0.12", default-features = false, features = [
+datex-core = { path = "../../../datex/crates/datex-core", default-features = false, features = [
 	"target_esp_shared",
 ] } # git = "https://github.com/unyt-org/datex", 
-datex-macro-utils = { version = "0.0.1", default-features = false } # git = "https://github.com/unyt-org/datex", 
+datex-macro-utils = { path = "../../../datex/crates/datex-macro-utils", default-features = false } # git = "https://github.com/unyt-org/datex", 
 
 [features]
 target_esp32 = []

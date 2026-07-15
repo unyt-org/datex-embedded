@@ -6,7 +6,7 @@ license-file = "../../LICENSE"
 description = "Embedded support for datex-core"
 
 [dependencies]
-datex-core = { version = "0.0.12", default-features = false, features = [
+datex-core = { path = "../../../datex/crates/datex-core", default-features = false, features = [
 	"target_esp_shared",
 ] } # , git = "https://github.com/unyt-org/datex", branch = "feat/pointer-sync"
 datex-embedded-macros = { path = "../datex-embedded-macros", version = "0.0.2" }

@@ -1,6 +1,6 @@
 #![feature(cfg_select)]
 
-use datex_core::runtime::RuntimeConfig;
+use datex_core::runtime::config::RuntimeConfig;
 use datex_macro_utils::entrypoint::{
     DatexMainInput, ParsedAttributes, datex_main_impl_with_config, get_config,
 };
