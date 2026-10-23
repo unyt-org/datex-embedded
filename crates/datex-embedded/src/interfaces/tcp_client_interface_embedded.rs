@@ -57,6 +57,7 @@ impl TcpClientInterfaceEmbeddedGlobalState {
 }
 
 #[derive(Datex)]
+#[datex(structural)]
 pub struct TCPClientInterfaceSetupDataEmbedded(pub TCPClientInterfaceSetupData);
 impl Deref for TCPClientInterfaceSetupDataEmbedded {
     type Target = TCPClientInterfaceSetupData;
