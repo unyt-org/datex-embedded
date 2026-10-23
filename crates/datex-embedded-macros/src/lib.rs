@@ -54,10 +54,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
         // runtime setup
         let esp32_context = datex_embedded::esp::init::init_runtime(
             spawner,
-            datex_embedded::esp::init::Esp32RuntimeInitPeripherals {
-                wifi: peripherals.WIFI,
-                lwpr: peripherals.LPWR,
-            },
+            peripherals,
             #wifi_credentials_quoted_option,
             runtime
         ).await;
@@ -79,11 +76,12 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
                 let config = esp_hal::Config::default().with_cpu_clock(datex_embedded::esp_hal::clock::CpuClock::max());
                 let peripherals = esp_hal::init(config);
                 datex_embedded::esp_alloc::heap_allocator!(size: #MAX_HEAP_KIB * 1024); // TODO: more heap? (does not work on esp32 base model)
-                let timg0 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
-                let sw_int = esp_hal::interrupt::software::SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
+                let timg0 = esp_hal::timer::timg::TimerGroup::new(unsafe {peripherals.TIMG0.clone_unchecked()});
+                let sw_int = esp_hal::interrupt::software::SoftwareInterruptControl::new(unsafe {peripherals.SW_INTERRUPT.clone_unchecked()});
                 datex_embedded::esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
             }),
-            init: Some(runtime_setup_quoted),
+            init_scoped: None,
+            init_unscoped: Some(runtime_setup_quoted),
             pre_body: Some(context_init_code),
             additional_attributes: vec![
                 parse_quote! {#[datex_embedded::esp_rtos::main]},

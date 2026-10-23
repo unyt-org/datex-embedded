@@ -78,7 +78,8 @@ impl WebSocketClientInterfaceEmbeddedGlobalState {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Datex)]
+#[datex(structural)]
 pub struct WebSocketClientInterfaceSetupDataEmbedded(
     pub WebSocketClientInterfaceSetupData,
 );
