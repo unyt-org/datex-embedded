@@ -169,7 +169,7 @@ impl TCPClientInterfaceSetupDataEmbedded {
                                     // write to socket
                                     if let Some((outgoing, sender)) = outgoing {
                                         if let Err(_e) = write
-                                            .write(&outgoing.to_bytes())
+                                            .write_all(&outgoing.to_bytes())
                                             .await
                                         {
                                             error!(
