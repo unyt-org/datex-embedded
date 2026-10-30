@@ -11,8 +11,8 @@ use syn::{FnArg, ItemFn, Pat, Signature, parse_macro_input, parse_quote};
 
 const MAX_HEAP_KIB: usize = cfg_select! {
     feature  = "target_esp32" => 80,
-    feature  = "target_esp32s3" => 220,
-    feature  = "target_esp32c2" => 220,
+    feature  = "target_esp32s3" => 180,
+    feature  = "target_esp32c2" => 100,
     _ => 0
 };
 
