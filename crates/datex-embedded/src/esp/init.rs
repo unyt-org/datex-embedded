@@ -1,6 +1,6 @@
 use crate::{
     esp::{
-        context::{AccesiblePeripherals, Esp32Context},
+        context::{Esp32Context},
         global_initializer::{EspSetupInitializer, EspWifiInitializer},
     },
     setup::global_initializer::{GlobalInitializer, WifiCredentials},
@@ -8,38 +8,37 @@ use crate::{
 use datex_core::runtime::Runtime;
 use embassy_executor::Spawner;
 use esp_hal::{
-    peripherals::{self},
+    peripherals::Peripherals,
     rtc_cntl::Rtc,
 };
-
-pub struct Esp32RuntimeInitPeripherals {
-    pub wifi: peripherals::WIFI<'static>,
-    pub lwpr: peripherals::LPWR<'static>,
-}
 
 /// Connects to wifi with the provided credentials and
 /// initializes a new DATEX runtime with the provided config
 #[cfg(feature = "wifi")]
 pub async fn init_runtime(
     spawner: Spawner,
-    peripherals: Esp32RuntimeInitPeripherals,
+    peripherals: Peripherals,
     wifi_credentials: Option<WifiCredentials>,
     runtime: Runtime,
-) -> Esp32Context {
+) -> Esp32Context {    
     let common_context = GlobalInitializer::init_datex_runtime(
         runtime,
         wifi_credentials,
         EspWifiInitializer {
-            wifi: peripherals.wifi,
+            // NOTE: this cloned instance is safe to use, but later access
+            // by the user via the peripherals is not allowed
+            wifi: unsafe {peripherals.WIFI.clone_unchecked()},
         },
         EspSetupInitializer {
-            rtc: Rtc::new(peripherals.lwpr),
+            // NOTE: this cloned instance is safe to use, but later access
+            // by the user via the peripherals is not allowed
+            rtc: Rtc::new(unsafe {peripherals.LPWR.clone_unchecked()}),
         },
         spawner,
     )
     .await;
     Esp32Context {
-        partial_peripherals: AccesiblePeripherals { wifi: None },
+        peripherals,
         common: common_context,
     }
 }

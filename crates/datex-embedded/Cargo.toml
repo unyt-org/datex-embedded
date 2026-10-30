@@ -6,8 +6,9 @@ license-file = "../../LICENSE"
 description = "Embedded support for datex-core"
 
 [dependencies]
-datex-core = { version = "0.0.12", default-features = false, features = [
+datex-core = { version = "0.0.13", default-features = false, features = [
 	"target_esp_shared",
+    "ast" # FIXME: weird dependency bullshit, required indirectly via derive macros, should not be used in the derive macros
 ] } # , git = "https://github.com/unyt-org/datex", branch = "feat/pointer-sync"
 datex-embedded-macros = { path = "../datex-embedded-macros", version = "0.0.2" }
 
@@ -76,9 +77,13 @@ esp-backtrace = { version = "0.19.0", features = [
 	"println",
 	"panic-handler",
 ], optional = true }
+linkme = "0.3.37"
 
 [features]
 default = []
+
+value_display = ["datex-core/value_display"]
+disassembler = ["datex-core/disassembler"]
 
 websocket-client = ["dep:url", "wifi"]
 tcp-client = ["dep:url", "wifi"]
