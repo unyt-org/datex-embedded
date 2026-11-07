@@ -26,7 +26,7 @@ use datex_core::{
             com_interface::{
                 factory::{
                     ComInterfaceAsyncFactory, ComInterfaceAsyncFactoryResult,
-                    ComInterfaceConfiguration, SendFailure,
+                    ComInterfaceConfiguration, SendFailure, SendSuccess,
                     SocketConfiguration, SocketProperties,
                 },
                 properties::{ComInterfaceProperties, InterfaceDirection},
@@ -101,7 +101,7 @@ impl TCPClientInterfaceSetupDataEmbedded {
                 SocketProperties::new(InterfaceDirection::InOut, 1),
                 |mut out_receiver: UnboundedReceiver<(
                     DXBBlock,
-                    Sender<Result<(), SendFailure>>,
+                    Sender<Result<SendSuccess, SendFailure>>,
                 )>| {
                     async gen move {
                         let buffers = TcpBuffers::<1, 1024, 1024>::new();
@@ -182,7 +182,7 @@ impl TCPClientInterfaceSetupDataEmbedded {
                                                 )))
                                                 .unwrap();
                                         } else {
-                                            sender.send(Ok(())).unwrap();
+                                            sender.send(Ok(SendSuccess::Sent)).unwrap();
                                         }
                                     }
                                 }
