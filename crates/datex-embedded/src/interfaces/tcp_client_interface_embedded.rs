@@ -208,13 +208,6 @@ impl ComInterfaceAsyncFactory for TCPClientInterfaceSetupDataEmbedded {
     }
 
     fn get_default_properties() -> ComInterfaceProperties {
-        ComInterfaceProperties {
-            interface_type: "tcp-client".to_string(),
-            channel: "tcp".to_string(),
-            reconnection_config: ReconnectionConfig::reconnect(),
-            round_trip_time: 20,
-            max_bandwidth: 1000,
-            ..ComInterfaceProperties::default()
-        }
+        TCPClientInterfaceSetupData::get_default_properties()
     }
 }
