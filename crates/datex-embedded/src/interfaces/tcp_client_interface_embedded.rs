@@ -38,6 +38,7 @@ use datex_core::{
         },
     },
 };
+use datex_core::network::com_interfaces::com_interface::properties::ReconnectionConfig;
 use futures::channel::oneshot::Sender;
 use log::{error, info};
 
@@ -210,6 +211,7 @@ impl ComInterfaceAsyncFactory for TCPClientInterfaceSetupDataEmbedded {
         ComInterfaceProperties {
             interface_type: "tcp-client".to_string(),
             channel: "tcp".to_string(),
+            reconnection_config: ReconnectionConfig::reconnect(),
             round_trip_time: 20,
             max_bandwidth: 1000,
             ..ComInterfaceProperties::default()

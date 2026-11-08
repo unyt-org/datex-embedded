@@ -56,6 +56,7 @@ use datex_core::{
     },
     task::spawn_with_panic_notify,
 };
+use datex_core::network::com_interfaces::com_interface::properties::ReconnectionConfig;
 use log::{error, info};
 use serde::Deserialize;
 use url::Url;
@@ -343,6 +344,7 @@ impl ComInterfaceAsyncFactory for WebSocketClientInterfaceSetupDataEmbedded {
             interface_type: "websocket-client".to_string(),
             channel: "websocket".to_string(),
             round_trip_time: Duration::from_millis(40),
+            reconnection_config: ReconnectionConfig::reconnect(),
             max_bandwidth: 1000,
             ..InterfaceProperties::default()
         }
