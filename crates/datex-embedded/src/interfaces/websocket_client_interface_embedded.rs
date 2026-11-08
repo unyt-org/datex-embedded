@@ -78,7 +78,7 @@ impl WebSocketClientInterfaceEmbeddedGlobalState {
     }
 }
 
-#[derive(Datex)]
+#[derive(Datex, Clone)]
 #[datex(structural)]
 pub struct WebSocketClientInterfaceSetupDataEmbedded(
     pub WebSocketClientInterfaceSetupData,
