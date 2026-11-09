@@ -343,4 +343,8 @@ impl ComInterfaceAsyncFactory for WebSocketClientInterfaceSetupDataEmbedded {
     fn get_default_properties() -> InterfaceProperties {
         WebSocketClientInterfaceSetupData::get_default_properties()
     }
+
+    fn get_reconnection_config() -> ReconnectionConfig {
+        WebSocketClientInterfaceSetupData::get_reconnection_config()
+    }
 }
