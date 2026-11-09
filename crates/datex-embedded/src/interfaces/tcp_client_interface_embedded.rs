@@ -39,7 +39,6 @@ use datex_core::{
     },
 };
 use datex_core::network::com_interfaces::com_interface::properties::ReconnectionConfig;
-use datex_core::network::com_interfaces::default_setup_data::tcp::tcp_client::TCPClientInterfaceSetupData;
 use futures::channel::oneshot::Sender;
 use log::{error, info};
 
