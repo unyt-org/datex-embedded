@@ -210,7 +210,7 @@ impl ComInterfaceAsyncFactory for TCPClientInterfaceSetupDataEmbedded {
     fn get_default_properties() -> ComInterfaceProperties {
         TCPClientInterfaceSetupData::get_default_properties()
     }
-    fn get_reconnect_config() -> ReconnectionConfig {
+    fn get_reconnection_config() -> ReconnectionConfig {
         TCPClientInterfaceSetupData::get_reconnection_config()
     }
 }
