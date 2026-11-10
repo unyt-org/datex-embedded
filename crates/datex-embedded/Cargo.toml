@@ -26,7 +26,7 @@ embassy-net = { version = "0.9.1", default-features = false, features = [
 embedded-io = "0.7.1"
 embedded-io-async = { version = "0.7.0", features = ["alloc"] }
 embassy-executor = { version = "0.10.0", features = ["log"] }
-embassy-time = { version = "0.5.0", features = ["log"] }
+embassy-time = { version = "0.5.0", features = ["log", "generic-queue-32"] }
 edge-net = { version = "0.14.0", features = ["io"] }
 edge-nal-embassy = { version = "0.9.0", default-features = false, features = [
 	"dns",
