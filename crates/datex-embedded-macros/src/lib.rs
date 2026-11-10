@@ -69,12 +69,14 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
                 extern crate alloc;
                 use alloc::string::ToString;
                 use alloc::vec;
+                use esp_hal::ram;
 
                 esp_println::logger::init_logger(log::LevelFilter::Info);
 
                 // esp setup
                 let config = esp_hal::Config::default().with_cpu_clock(datex_embedded::esp_hal::clock::CpuClock::max());
                 let peripherals = esp_hal::init(config);
+                datex_embedded::esp_alloc::heap_allocator!(#[ram(reclaimed)] size: 72 * 1024);
                 datex_embedded::esp_alloc::heap_allocator!(size: #MAX_HEAP_KIB * 1024); // TODO: more heap? (does not work on esp32 base model)
                 let timg0 = esp_hal::timer::timg::TimerGroup::new(unsafe {peripherals.TIMG0.clone_unchecked()});
                 let sw_int = esp_hal::interrupt::software::SoftwareInterruptControl::new(unsafe {peripherals.SW_INTERRUPT.clone_unchecked()});
