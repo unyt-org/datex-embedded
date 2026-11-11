@@ -101,6 +101,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
                 spawner: datex_embedded::Spawner
             }],
             enforce_main_name: true,
+            custom_runtime_info: Some(quote! { datex_embedded::setup::custom_runtime_info() }),
         },
         config,
     );
