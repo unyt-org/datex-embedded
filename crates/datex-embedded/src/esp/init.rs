@@ -20,6 +20,8 @@ pub async fn init_runtime(
     wifi_credentials: Option<WifiCredentials>,
     runtime: Runtime,
 ) -> Esp32Context {
+    runtime.set_stats_provider(get_stats);
+
     let common_context = GlobalInitializer::init_datex_runtime(
         runtime,
         wifi_credentials,
@@ -37,7 +39,6 @@ pub async fn init_runtime(
     )
     .await;
 
-    runtime.set_stats_provider(get_stats);
 
     Esp32Context {
         peripherals,
