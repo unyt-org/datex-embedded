@@ -6,8 +6,9 @@ license-file = "../../LICENSE"
 description = "Embedded support for datex-core"
 
 [dependencies]
-datex-core = { version = "0.0.12", default-features = false, features = [
+datex-core = { version = "0.0.13", default-features = false, features = [
 	"target_esp_shared",
+    "ast" # FIXME: weird dependency bullshit, required indirectly via derive macros, should not be used in the derive macros
 ] } # , git = "https://github.com/unyt-org/datex", branch = "feat/pointer-sync"
 datex-embedded-macros = { path = "../datex-embedded-macros", version = "0.0.2" }
 
@@ -25,7 +26,7 @@ embassy-net = { version = "0.9.1", default-features = false, features = [
 embedded-io = "0.7.1"
 embedded-io-async = { version = "0.7.0", features = ["alloc"] }
 embassy-executor = { version = "0.10.0", features = ["log"] }
-embassy-time = { version = "0.5.0", features = ["log"] }
+embassy-time = { version = "0.5.0", features = ["log", "generic-queue-32"] }
 edge-net = { version = "0.14.0", features = ["io"] }
 edge-nal-embassy = { version = "0.9.0", default-features = false, features = [
 	"dns",
@@ -54,7 +55,7 @@ esp-rtos = { version = "0.3.0", optional = true, features = [
 	"log-04",
 ] }
 esp-bootloader-esp-idf = { version = "0.5.0", optional = true }
-esp-alloc = { version = "0.10.0", optional = true }
+esp-alloc = { version = "0.10.0", optional = true, features = ["internal-heap-stats"] }
 esp-radio = { version = "0.18.0", optional = true, features = [
 	"ble",
 	"coex",
@@ -76,9 +77,13 @@ esp-backtrace = { version = "0.19.0", features = [
 	"println",
 	"panic-handler",
 ], optional = true }
+linkme = "0.3.37"
 
 [features]
 default = []
+
+value_display = ["datex-core/value_display"]
+disassembler = ["datex-core/disassembler"]
 
 websocket-client = ["dep:url", "wifi"]
 tcp-client = ["dep:url", "wifi"]

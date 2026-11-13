@@ -26,7 +26,7 @@ use datex_core::{
             com_interface::{
                 factory::{
                     ComInterfaceAsyncFactory, ComInterfaceAsyncFactoryResult,
-                    ComInterfaceConfiguration, SendFailure,
+                    ComInterfaceConfiguration, SendFailure, SendSuccess,
                     SocketConfiguration, SocketProperties,
                 },
                 properties::{ComInterfaceProperties, InterfaceDirection},
@@ -38,6 +38,7 @@ use datex_core::{
         },
     },
 };
+use datex_core::network::com_interfaces::com_interface::properties::ReconnectionConfig;
 use futures::channel::oneshot::Sender;
 use log::{error, info};
 
@@ -56,7 +57,8 @@ impl TcpClientInterfaceEmbeddedGlobalState {
     }
 }
 
-#[derive(Datex)]
+#[derive(Datex, Clone)]
+#[datex(structural)]
 pub struct TCPClientInterfaceSetupDataEmbedded(pub TCPClientInterfaceSetupData);
 impl Deref for TCPClientInterfaceSetupDataEmbedded {
     type Target = TCPClientInterfaceSetupData;
@@ -100,7 +102,7 @@ impl TCPClientInterfaceSetupDataEmbedded {
                 SocketProperties::new(InterfaceDirection::InOut, 1),
                 |mut out_receiver: UnboundedReceiver<(
                     DXBBlock,
-                    Sender<Result<(), SendFailure>>,
+                    Sender<Result<SendSuccess, SendFailure>>,
                 )>| {
                     async gen move {
                         let buffers = TcpBuffers::<1, 1024, 1024>::new();
@@ -169,7 +171,7 @@ impl TCPClientInterfaceSetupDataEmbedded {
                                     // write to socket
                                     if let Some((outgoing, sender)) = outgoing {
                                         if let Err(_e) = write
-                                            .write(&outgoing.to_bytes())
+                                            .write_all(&outgoing.to_bytes())
                                             .await
                                         {
                                             error!(
@@ -181,7 +183,7 @@ impl TCPClientInterfaceSetupDataEmbedded {
                                                 )))
                                                 .unwrap();
                                         } else {
-                                            sender.send(Ok(())).unwrap();
+                                            sender.send(Ok(SendSuccess::Sent)).unwrap();
                                         }
                                     }
                                 }
@@ -206,12 +208,9 @@ impl ComInterfaceAsyncFactory for TCPClientInterfaceSetupDataEmbedded {
     }
 
     fn get_default_properties() -> ComInterfaceProperties {
-        ComInterfaceProperties {
-            interface_type: "tcp-client".to_string(),
-            channel: "tcp".to_string(),
-            round_trip_time: 20,
-            max_bandwidth: 1000,
-            ..ComInterfaceProperties::default()
-        }
+        TCPClientInterfaceSetupData::get_default_properties()
+    }
+    fn get_reconnection_config() -> ReconnectionConfig {
+        TCPClientInterfaceSetupData::get_reconnection_config()
     }
 }
