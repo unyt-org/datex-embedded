@@ -526,60 +526,6 @@ dependencies = [
 
 [[package]]
 name = "datex-core"
-version = "0.0.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc31f4e23de348fbf1c9bb45ffd68992806109de06e376470f4f3d37153fa74c"
-dependencies = [
- "async-select",
- "async-unsync",
- "bigdecimal",
- "binrw",
- "cfg-if",
- "chrono",
- "datex-crypto-esp32",
- "datex-crypto-facade",
- "datex-macros-internal 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "embassy-executor 0.9.1",
- "embassy-futures",
- "embassy-time",
- "erased-serde",
- "fnv64-rs",
- "foldhash 0.2.0",
- "futures",
- "futures-core",
- "futures-util",
- "hashbrown 0.16.1",
- "hex",
- "indexmap 2.14.0",
- "inventory",
- "itertools",
- "linkme",
- "log",
- "modular-bitfield",
- "num",
- "num-bigint",
- "num-integer",
- "num-traits",
- "num_enum",
- "ordered-float",
- "ringmap",
- "seq-macro",
- "serde",
- "serde-big-array",
- "serde-val 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json",
- "serde_repr",
- "serde_with",
- "spin 0.10.1",
- "strum",
- "strum_macros",
- "thiserror",
- "twox-hash",
- "url",
-]
-
-[[package]]
-name = "datex-core"
 version = "0.0.15"
 dependencies = [
  "async-select",
@@ -590,7 +536,7 @@ dependencies = [
  "chrono",
  "datex-esp-impls",
  "datex-facades",
- "datex-macros-internal 0.0.3",
+ "datex-macros-internal",
  "datex-nat-impls",
  "dotenvy",
  "embassy-executor 0.9.1",
@@ -623,7 +569,7 @@ dependencies = [
  "seq-macro",
  "serde",
  "serde-big-array",
- "serde-val 0.1.0 (git+https://github.com/unyt-org/serde-value)",
+ "serde-val",
  "serde_json",
  "serde_repr",
  "serde_with",
@@ -638,30 +584,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "datex-crypto-esp32"
-version = "0.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5742f101b07d9399f42a2dc60a4e382bc37eb10d3eb02fa8472f70bad622e7f"
-dependencies = [
- "datex-crypto-facade",
- "spin 0.12.2",
- "static_cell",
-]
-
-[[package]]
-name = "datex-crypto-facade"
-version = "0.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "337cd47bb87f8282ac74f393eb249a064ea11ad9d31d2687714dd871db76b437"
-dependencies = [
- "bs58",
-]
-
-[[package]]
 name = "datex-embedded"
 version = "0.0.1"
 dependencies = [
- "datex-core 0.0.15",
+ "datex-core",
  "datex-embedded-macros",
  "edge-http",
  "edge-nal-embassy",
@@ -696,7 +622,7 @@ name = "datex-embedded-macros"
 version = "0.0.1"
 dependencies = [
  "cfg-if",
- "datex-core 0.0.13",
+ "datex-core",
  "datex-macro-utils",
  "proc-macro2",
  "quote",
@@ -732,7 +658,7 @@ dependencies = [
 name = "datex-macro-utils"
 version = "0.0.3"
 dependencies = [
- "datex-core 0.0.15",
+ "datex-core",
  "proc-macro2",
  "quote",
  "syn 2.0.119",
@@ -741,20 +667,6 @@ dependencies = [
 [[package]]
 name = "datex-macros-internal"
 version = "0.0.3"
-dependencies = [
- "deluxe",
- "pathdiff",
- "proc-macro-crate 3.5.0",
- "proc-macro2",
- "quote",
- "syn 3.0.9",
-]
-
-[[package]]
-name = "datex-macros-internal"
-version = "0.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ea5c2946c65e0b2af09cf83c87bed1e61fb994999afe61d38c3168c5eaa1c3e"
 dependencies = [
  "deluxe",
  "pathdiff",
@@ -3248,16 +3160,6 @@ version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11fc7cc2c76d73e0f27ee52abbd64eec84d46f370c88371120433196934e4b7f"
 dependencies = [
- "serde",
-]
-
-[[package]]
-name = "serde-val"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8075daef7fd08d39b83bf3606feab616391269df779fae7172f5558b3b220d10"
-dependencies = [
- "ordered-float",
  "serde",
 ]
 

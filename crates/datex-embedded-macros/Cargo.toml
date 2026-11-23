@@ -14,7 +14,7 @@ syn = { version = "2", features = ["full"] }
 quote = "1"
 proc-macro2 = "1"
 
-datex-core = { version = "0.0.13", default-features = false, features = [
+datex-core = { version = "0.0.15", default-features = false, features = [
 	"target_esp_shared",
 ] } # git = "https://github.com/unyt-org/datex",
 datex-macro-utils = { version = "0.0.3", default-features = false } # git = "https://github.com/unyt-org/datex",
