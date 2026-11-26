@@ -374,6 +374,7 @@ dependencies = [
  "fiat-crypto",
  "rustc_version",
  "subtle",
+ "zeroize",
 ]
 
 [[package]]
@@ -534,10 +535,10 @@ dependencies = [
  "binrw",
  "cfg-if",
  "chrono",
- "datex-esp-impls",
  "datex-facades",
+ "datex-impls-esp32",
+ "datex-impls-native",
  "datex-macros-internal",
- "datex-nat-impls",
  "dotenvy",
  "embassy-executor 0.9.1",
  "embassy-futures",
@@ -630,7 +631,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "datex-esp-impls"
+name = "datex-facades"
+version = "0.0.1"
+dependencies = [
+ "bs58",
+]
+
+[[package]]
+name = "datex-impls-esp32"
 version = "0.0.1"
 dependencies = [
  "aes",
@@ -648,10 +656,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "datex-facades"
+name = "datex-impls-native"
 version = "0.0.1"
 dependencies = [
- "bs58",
+ "datex-facades",
+ "openssl",
+ "rand 0.10.2",
+ "uuid",
 ]
 
 [[package]]
@@ -674,16 +685,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.9",
-]
-
-[[package]]
-name = "datex-nat-impls"
-version = "0.0.1"
-dependencies = [
- "datex-facades",
- "openssl",
- "rand 0.10.2",
- "uuid",
 ]
 
 [[package]]
@@ -883,6 +884,7 @@ dependencies = [
  "ed25519",
  "sha2",
  "subtle",
+ "zeroize",
 ]
 
 [[package]]
@@ -4063,6 +4065,12 @@ dependencies = [
  "syn 2.0.119",
  "synstructure",
 ]
+
+[[package]]
+name = "zeroize"
+version = "1.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85ccff8a4805aba1eaa4cd4afcd49f7557dd2cf5fd79ffc37f8959466effc5aa"
 
 [[package]]
 name = "zerotrie"
