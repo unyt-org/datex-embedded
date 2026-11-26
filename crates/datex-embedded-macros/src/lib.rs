@@ -74,6 +74,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
             parsed_attributes,
             func: original_function,
             datex_core_namespace: "datex_embedded::core",
+            // TODO: outsource to helper functions
             setup: Some(quote! {
                 extern crate alloc;
                 use alloc::string::ToString;
@@ -90,6 +91,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
                 let timg0 = esp_hal::timer::timg::TimerGroup::new(unsafe {peripherals.TIMG0.clone_unchecked()});
                 let sw_int = esp_hal::interrupt::software::SoftwareInterruptControl::new(unsafe {peripherals.SW_INTERRUPT.clone_unchecked()});
                 datex_embedded::esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
+                datex_embedded::esp::init::init_flash(unsafe { peripherals.FLASH.clone_unchecked() });
             }),
             init_scoped: None,
             init_unscoped: Some(runtime_setup_quoted),

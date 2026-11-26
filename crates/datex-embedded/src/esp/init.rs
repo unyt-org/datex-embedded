@@ -6,6 +6,7 @@ use crate::{
     setup::global_initializer::{GlobalInitializer, WifiCredentials},
 };
 use datex_core::runtime::{RuntimeStats, HeapStats, Runtime};
+pub use datex_impls_esp32::vault::init_flash;
 use embassy_executor::Spawner;
 use esp_hal::{
     peripherals::Peripherals,

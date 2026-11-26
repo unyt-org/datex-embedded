@@ -11,6 +11,7 @@ datex-core = { version = "0.0.15", default-features = false, features = [
     "ast" # FIXME: weird dependency bullshit, required indirectly via derive macros, should not be used in the derive macros
 ] } # , git = "https://github.com/unyt-org/datex", branch = "feat/pointer-sync"
 datex-embedded-macros = { path = "../datex-embedded-macros", version = "0.0.1" }
+datex-impls-esp32 = { version = "0.0.1" }
 
 log = "0.4.27"
 embassy-net = { version = "0.9.1", default-features = false, features = [
@@ -111,6 +112,7 @@ target_esp32 = [
 	"esp-backtrace/esp32",
 	"datex-core/target_esp32",
 	"datex-embedded-macros/target_esp32",
+    "datex-impls-esp32/esp32",
 ]
 
 target_esp32s3 = [
@@ -122,6 +124,7 @@ target_esp32s3 = [
 	"esp-backtrace/esp32s3",
 	"datex-core/target_esp32s3",
 	"datex-embedded-macros/target_esp32s3",
+    "datex-impls-esp32/esp32s3",
 ]
 
 target_esp32c2 = [
@@ -133,4 +136,5 @@ target_esp32c2 = [
 	"esp-backtrace/esp32c2",
 	"datex-core/target_esp32c2",
 	"datex-embedded-macros/target_esp32c2",
+    "datex-impls-esp32/esp32c2",
 ]
